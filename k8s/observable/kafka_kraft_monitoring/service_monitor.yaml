@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kafka-metrics
+  namespace: infrastructure
+  labels:
+    component: main # must match with the serviceMonitorSelector
+spec:
+  selector:
+    matchLabels: # must match with the Service labels (metadata)
+      # app.kubernetes.io/name: kafka
+      # strimzi.io/cluster: kafka
+      app: "kafka-metrics"
+  namespaceSelector:
+    matchNames:
+      - infrastructure
+  endpoints:
+    # - port: tcp-prometheus
+    - port: metrics
+      path: /metrics
+      targetPort: 9404
+      interval: 30s

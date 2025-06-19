@@ -1,0 +1,13 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: insert-reviews-job
+  namespace: processor
+spec:
+  template:
+    spec:
+      containers:
+      - name: insert-reviews
+        image: longpk1/insert_reviews
+        imagePullPolicy: Always
+      restartPolicy: OnFailure

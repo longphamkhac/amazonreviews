@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: {{ .Values.schemaRegistry.name }}
+  namespace: {{ .Values.general.namespace }}
+spec:
+  replicas: {{ .Values.schemaRegistry.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.schemaRegistry.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.schemaRegistry.name }}
+    spec:
+      initContainers:
+        - name: wait-for-kafka
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z {{ .Values.kafka.bootstrapServer }}.{{ .Values.general.namespace }}.svc.cluster.local 9192; do
+                echo "Waiting for Kafka to be ready...";
+                sleep 2;
+              echo "Connect to kafka server successfully !!!"
+              done
+          imagePullPolicy: IfNotPresent
+      containers:
+        - name: {{ .Values.schemaRegistry.name }}
+          image: {{ .Values.schemaRegistry.image }}
+          imagePullPolicy: {{ .Values.schemaRegistry.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.schemaRegistry.port }}
+          env:
+            - name: SCHEMA_REGISTRY_HOST_NAME
+              value: {{ .Values.schemaRegistry.name }}
+            - name: SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS
+              value: "{{ .Values.kafka.bootstrapServer }}.{{ .Values.general.namespace }}.svc.cluster.local:{{ .Values.kafka.listeners.port }}"
+            - name: SCHEMA_REGISTRY_LISTENERS
+              value: {{ .Values.schemaRegistry.listeners }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.schemaRegistry.svcName }}
+  namespace: {{ .Values.general.namespace }}
+spec:
+  selector:
+    app: {{ .Values.schemaRegistry.name }}
+  type: {{ .Values.schemaRegistry.svcType }}
+  ports:
+    - name: http
+      port: {{ .Values.schemaRegistry.port }}
+      targetPort: {{ .Values.schemaRegistry.port }}

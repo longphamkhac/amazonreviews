@@ -1,0 +1,9 @@
+apiVersion: v2
+name: OLAP
+description: Trino and Hive Metastore
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - email: longpham1801@gmail.com
+    name: longpk1

@@ -1,0 +1,55 @@
+general:
+  namespace: infrastructure
+kafkaNodepool:
+  name: combined
+  weight: 0
+  replicas: 3
+kafka:
+  name: kafka
+  weight: 0
+  bootstrapServer: kafka-kafka-bootstrap
+  listeners:
+    name: plaintext
+    port: 9192
+    type: internal
+    tls: false
+  metricsConfig:
+    name: kafka-metrics
+    key: metrics-config.yaml
+kafkaTopic:
+  name: schemas
+  weight: 1
+  topicName: _schemas
+  partitions: 1
+  replicas: 3
+  config:
+    cleanupPolicy: compact
+    retention: 60480000 # 7 days
+    segmentBytes: 1048576
+schemaRegistry:
+  name: schema-registry
+  weight: 1
+  replicas: 1
+  image: confluentinc/cp-schema-registry:7.5.0
+  imagePullPolicy: IfNotPresent
+  port: 8081
+  listeners: http://0.0.0.0:8081
+  svcType: ClusterIP
+  svcName: schema-registry-svc
+provectus:
+  name: kafka-ui
+  replicas: 1
+  image: provectuslabs/kafka-ui:v0.7.2
+  imagePullPolicy: IfNotPresent
+  port: 8080
+  protocol: TCP
+  svcType: ClusterIP
+  svcName: kafka-ui-svc
+kafkaConnect:
+  name: debezium-connect-cluster
+  image: longpk1/connectors:latest
+  replicas: 1
+  replicationFactor: 3
+  pluginPath: /opt/kafka/plugins
+  dbCredentials: postgres-credentials
+  s3Credentials: minio-credentials

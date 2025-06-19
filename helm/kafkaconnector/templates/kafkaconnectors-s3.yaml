@@ -1,0 +1,26 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: {{ .Values.kafkaConnectors.s3.name }}
+  namespace: {{ .Values.general.namespace }}
+  labels:
+    strimzi.io/cluster: {{ .Values.general.kafkaConnect.name }}
+spec:
+  class: io.confluent.connect.s3.S3SinkConnector
+  tasksMax: {{ .Values.kafkaConnectors.s3.tasksMax }}
+  config:
+    connector.class: io.confluent.connect.s3.S3SinkConnector
+    s3.credentials.provider.class: com.amazonaws.auth.EnvironmentVariableCredentialsProvider # Environment variables (Very Important): https://docs.confluent.io/kafka-connectors/s3-sink/current/overview.html#install-the-amazon-s3-sink-connector
+    s3.bucket.name: {{ .Values.kafkaConnectors.s3.bucketName }}
+    s3.region: {{ .Values.kafkaConnectors.s3.region }}
+    s3.path.style.access: true
+    tasks.max: "{{ .Values.kafkaConnectors.s3.tasksMax }}"
+    topics: "{{ .Values.kafkaConnectors.postgres.topicPrefix }}.{{ .Values.general.metadataTable }},{{ .Values.kafkaConnectors.postgres.topicPrefix }}.{{ .Values.general.reviewsTable }}"
+    store.url: "http://{{ .Values.kafkaConnectors.s3.hostname }}.{{ .Values.general.namespace }}.svc.cluster.local:{{ .Values.kafkaConnectors.s3.port }}" # Very Important (Do not need s3.endpoint)
+    flush.size: "{{ .Values.kafkaConnectors.s3.flushSize }}"
+    storage.class: io.confluent.connect.s3.storage.S3Storage
+    format.class: io.confluent.connect.s3.format.json.JsonFormat
+    partitioner.class: io.confluent.connect.storage.partitioner.DefaultPartitioner
+    behavior.on.null.values: ignore
+    schema.compatibility: NONE
+    schemas.enable: false

@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.provectus.name }}
+  namespace: {{ .Values.general.namespace }}
+spec:
+  replicas: {{ .Values.provectus.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.provectus.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.provectus.name }}
+    spec:
+      containers:
+        - name: {{ .Values.provectus.name }}
+          image: {{ .Values.provectus.image }}
+          imagePullPolicy: {{ .Values.provectus.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.provectus.port }}
+              protocol: {{ .Values.provectus.protocol }}
+          env:
+            - name: KAFKA_CLUSTERS_0_NAME
+              value: minikube_cluster
+            - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
+              value: "{{ .Values.kafka.bootstrapServer }}.{{ .Values.general.namespace }}.svc.cluster.local:{{ .Values.kafka.listeners.port }}"
+            - name: KAFKA_CLUSTERS_0_SCHEMAREGISTRY
+              value: "http://{{ .Values.schemaRegistry.svcName }}:{{ .Values.schemaRegistry.port }}"
+            - name: AUTH_TYPE
+              value: "DISABLED"
+            - name: MANAGEMENT_HEALTH_LDAP_ENABLED
+              value: "FALSE"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.provectus.svcName }}
+  namespace: {{ .Values.general.namespace }}
+spec:
+  selector:
+    app: {{ .Values.provectus.name }}
+  type: {{ .Values.provectus.svcType }}
+  ports:
+    - name: http
+      port: {{ .Values.provectus.port }}
+      targetPort: {{ .Values.provectus.port }}

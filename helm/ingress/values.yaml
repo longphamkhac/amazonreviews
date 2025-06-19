@@ -1,0 +1,20 @@
+ingress:
+  name: ingress
+kafkaUI:
+  host: kafka.ui.com
+  namespace: infrastructure
+  svc:
+    name: kafka-ui-svc
+    port: 8080
+minio:
+  host: minio.ui.com
+  namespace: infrastructure
+  svc:
+    name: minio-svc
+    port: 9092
+airflow:
+  host: airflow.webserver.com
+  namespace: airflow
+  svc:
+    name: airflow-webserver
+    port: 8080

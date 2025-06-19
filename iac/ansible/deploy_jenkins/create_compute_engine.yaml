@@ -1,0 +1,42 @@
+- name: Create a Compute Engine instance
+  hosts: localhost
+  tasks:
+    - name: Start an instance
+      gcp_compute_instance:
+        name: amazonreviews-vm-instance
+        machine_type: n2d-standard-2
+        zone: us-central1-c
+        project: tokyo-dream-461703-i3
+        auth_kind: serviceaccount
+        service_account_file: ../secrets/tokyo-dream-461703-i3-5f0c0584c99a.json
+        disks:
+          - auto_delete: true
+            boot: true
+            initialize_params:
+              source_image: projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20230727
+              disk_size_gb: 100
+        network_interfaces:
+          - network:
+              selfLink: global/networks/default
+            access_configs:
+              - name: External NAT
+                type: ONE_TO_ONE_NAT
+        state: absent
+
+    - name: Create inbound firewall rule for port 8081 and 50000
+      gcp_compute_firewall:
+        name: allow-port-8081-50000
+        network:
+          selfLink: global/networks/default
+        allowed:
+          - ip_protocol: TCP
+            ports:
+              - 8081
+              - 50000
+        source_ranges:
+          - 0.0.0.0/0 # Allow traffic from any source (use a more specific source range for security)
+        direction: INGRESS # Direction from outside to inside, EGRESS is the opposite direction
+        project: tokyo-dream-461703-i3
+        auth_kind: serviceaccount
+        service_account_file: ../secrets/tokyo-dream-461703-i3-5f0c0584c99a.json
+        state: absent

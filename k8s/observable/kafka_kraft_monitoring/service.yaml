@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-kafka-prometheus
+  namespace: infrastructure
+  labels: # must match with the "spec.selector.matchLabels" in the ServiceMonitor
+    # app.kubernetes.io/name: kafka
+    # strimzi.io/cluster: kafka
+    app: "kafka-metrics"
+spec:
+  # type: ClusterIP
+  clusterIP: None
+  selector: # must match with the labels in Deployment type (pod)
+    # app.kubernetes.io/name: kafka
+    # strimzi.io/cluster: kafka
+    app.kubernetes.io/instance: kafka
+    app.kubernetes.io/managed-by: strimzi-cluster-operator
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/part-of: strimzi-kafka
+    strimzi.io/cluster: kafka
+    strimzi.io/component-type: kafka
+    strimzi.io/controller-name: kafka-combined
+  ports:
+    # - name: tcp-prometheus
+    - name: metrics
+      port: 9404
+      targetPort: 9404
+      protocol: TCP

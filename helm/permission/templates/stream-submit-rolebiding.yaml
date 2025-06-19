@@ -1,0 +1,20 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: {{ .Values.flink.namespace }}
+  name: airflow-worker-flink-access-binding
+subjects:
+- kind: ServiceAccount
+  name: airflow-worker
+  namespace: {{ .Values.airflow.namespace }}
+- kind: ServiceAccount
+  name: default
+  namespace: {{ .Values.airflow.namespace }}
+- kind: ServiceAccount
+  name: default
+  namespace: {{ .Values.jenkins.namespace }}
+roleRef:
+  kind: Role
+  name: airflow-flink-access-role
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.debeziumUI.name }}
+  namespace: {{ .Values.general.namespace }}
+spec:
+  replicas: {{ .Values.debeziumUI.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.debeziumUI.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.debeziumUI.name }}
+    spec:
+      containers:
+        - name: {{ .Values.debeziumUI.name }}
+          image: {{ .Values.debeziumUI.image }}
+          ports:
+            - containerPort: {{ .Values.debeziumUI.port }}
+          env:
+            - name: KAFKA_CONNECT_URIS
+              value: "http://{{ .Values.general.kafkaConnect.name }}-connect-api.{{ .Values.general.namespace }}.svc.cluster.local:{{ .Values.general.kafkaConnect.port }}"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Values.debeziumUI.name }}-svc"
+  namespace: {{ .Values.general.namespace }}
+spec:
+  selector:
+    app: {{ .Values.debeziumUI.name }}
+  type: {{ .Values.debeziumUI.svcType }}
+  ports:
+    - name: http
+      port: {{ .Values.debeziumUI.port }}
+      targetPort: {{ .Values.debeziumUI.port }}

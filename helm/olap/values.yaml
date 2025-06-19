@@ -1,0 +1,33 @@
+general:
+  namespace: processor
+postgres:
+  credentials:
+    name: postgres-credentials-separate
+    username: admin
+    password: root
+hiveMetastore:
+  name: hive-metastore
+  replicas: 1
+  image: starburstdata/hive:3.1.2-e.18
+  port: 9083
+  jdbcURL:
+    hostname: postgres-svc
+    port: 5432
+    dbName: demo
+    namespace: infrastructure
+    credentials: postgres-credentials-separate
+  s3URL:
+    hostname: minio-svc
+    port: 9000
+    namespace: infrastructure
+    credentials: minio-credentials
+  svcType: ClusterIP
+trino:
+  name: trino
+  replicas: 1
+  image: trinodb/trino:410
+  port: 8080
+  etcMountPath: /usr/lib/trino/etc
+  catalogMountPath: /etc/trino/catalog
+  protocol: TCP
+  svcType: ClusterIP

@@ -1,0 +1,30 @@
+general:
+  namespace: infrastructure
+  metadataTable: public.raw_item_metadata
+  reviewsTable: public.raw_reviews
+  kafkaConnect:
+    name: debezium-connect-cluster
+    port: 8083
+kafkaConnectors:
+  postgres:
+    name: debezium-connector-postgres
+    hostname: postgres-svc
+    port: 5432
+    tasksMax: 2
+    dbName: demo
+    slotName: debezium_slot_1
+    topicPrefix: test
+  s3:
+    name: debezium-connector-s3
+    hostname: minio-svc
+    port: 9000
+    tasksMax: 1
+    bucketName: kafka-tiered-storage
+    region: ap-northeast-2
+    flushSize: 10
+debeziumUI:
+  name: debezium-ui
+  replicas: 1
+  image: debezium/debezium-ui:latest
+  port: 8080
+  svcType: ClusterIP

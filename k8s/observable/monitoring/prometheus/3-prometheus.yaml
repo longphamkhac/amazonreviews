@@ -1,0 +1,59 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: main
+  namespace: monitoring
+spec:
+  alerting:
+    alertmanagers:
+      - namespace: monitoring
+        name: alertmanager-operated
+        port: web
+  ruleSelector:
+    matchLabels:
+      prometheus: main
+  ruleNamespaceSelector:
+    matchLabels:
+      monitoring: prometheus
+  version: v2.40.1
+  serviceAccountName: prometheus
+  serviceMonitorSelector:
+    matchLabels:
+      component: main
+  serviceMonitorNamespaceSelector:
+    matchLabels:
+      monitoring: prometheus
+  resources:
+    requests:
+      cpu: 250m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  replicas: 1
+  logLevel: debug
+  logFormat: logfmt
+  scrapeInterval: 15s
+  securityContext:
+    fsGroup: 0
+    runAsNonRoot: false
+    runAsUser: 0
+  storage:
+    volumeClaimTemplate:
+      spec:
+        resources:
+          requests:
+            storage: 20Gi
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+              - prometheus
+          topologyKey: kubernetes.io/hostname
+        weight: 100

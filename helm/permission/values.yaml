@@ -1,0 +1,8 @@
+airflow:
+  namespace: airflow
+spark:
+  namespace: processor
+flink:
+  namespace: processor
+jenkins:
+  namespace: processor

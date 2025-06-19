@@ -1,0 +1,13 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: insert-metadata-job
+  namespace: processor
+spec:
+  template:
+    spec:
+      containers:
+      - name: insert-metadata
+        image: longpk1/insert_metadata
+        imagePullPolicy: Always
+      restartPolicy: OnFailure

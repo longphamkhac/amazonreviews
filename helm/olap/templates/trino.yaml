@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Values.trino.name }}-catalog-config"
+  namespace: {{ .Values.general.namespace }}
+data:
+  lakehouse.properties: |
+    connector.name=delta_lake
+    hive.metastore.uri=thrift://{{ .Values.hiveMetastore.name }}-svc.{{ .Values.general.namespace }}.svc.cluster.local:{{ .Values.hiveMetastore.port }}
+    hive.s3.endpoint=http://{{ .Values.hiveMetastore.s3URL.hostname }}.{{ .Values.hiveMetastore.s3URL.namespace }}.svc.cluster.local:9000
+    hive.s3.aws-access-key=minio_access_key
+    hive.s3.aws-secret-key=minio_secret_key
+    hive.s3.path-style-access=true
+    hive.s3.ssl.enabled=false
+    delta.legacy-create-table-with-existing-location.enabled=true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Values.trino.name }}-etc-config"
+  namespace: {{ .Values.general.namespace }}
+data:
+  config.properties: |
+    coordinator=false
+    node-scheduler.include-coordinator=true
+    http-server.http.port={{ .Values.trino.port }}
+    discovery.uri=http://{{ .Values.trino.name }}-svc.{{ .Values.general.namespace }}.svc.cluster.local:{{ .Values.trino.port }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.trino.name }}
+  namespace: {{ .Values.general.namespace }}
+  labels:
+    app: {{ .Values.trino.name }}
+spec:
+  replicas: {{ .Values.trino.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.trino.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.trino.name }}
+    spec:
+      containers:
+      - name: {{ .Values.trino.name }}
+        image: {{ .Values.trino.image }}
+        ports:
+          - containerPort: {{ .Values.trino.port }}
+        volumeMounts:
+          - name: "{{ .Values.trino.name }}-etc-config"
+            mountPath: {{ .Values.trino.etcMountPath }}
+            # readOnly: true
+          - name: "{{ .Values.trino.name }}-catalog-config"
+            mountPath: {{ .Values.trino.catalogMountPath }}
+            # readOnly: true
+      volumes:
+      - name: "{{ .Values.trino.name }}-etc-config"
+        configMap:
+          name: "{{ .Values.trino.name }}-etc-config"
+      - name: "{{ .Values.trino.name }}-catalog-config"
+        configMap:
+          name: "{{ .Values.trino.name }}-catalog-config"
+      initContainers:
+      - name: wait-for-hive-metastore
+        image: busybox
+        command: ['sh', '-c', 'until nc -z {{ .Values.hiveMetastore.name }}-svc.{{ .Values.general.namespace }}.svc.cluster.local {{ .Values.hiveMetastore.port }}; do echo waiting for hive-metastore; sleep 2; done;']
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Values.trino.name }}-svc"
+  namespace: {{ .Values.general.namespace }}
+spec:
+  selector:
+    app: {{ .Values.trino.name }}
+  ports:
+  - protocol: {{ .Values.trino.protocol }}
+    port: {{ .Values.trino.port }}
+    targetPort: {{ .Values.trino.port }}
+  type: {{ .Values.trino.svcType }}

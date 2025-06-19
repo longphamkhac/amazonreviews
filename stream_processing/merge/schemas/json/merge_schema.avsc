@@ -1,0 +1,76 @@
+{
+    "doc": "Merge User Reviews and Item Metadata schema",
+    "name": "MergeSchema",
+    "type": "record",
+    "namespace": "example.avro",
+    "fields": [
+        {
+            "name": "rating",
+            "type": "int"
+        },
+        {
+            "name": "review_title",
+            "type": "string"
+        },
+        {
+            "name": "review_text",
+            "type": "string"
+        },
+        {
+            "name": "product_id",
+            "type": "string"
+        },
+        {
+            "name": "parent_product_id",
+            "type": "string"
+        },
+        {
+            "name": "user_id",
+            "type": "string"
+        },
+        {
+            "name": "timestamp",
+            "type": "string"
+        },
+        {
+            "name": "helpful_vote",
+            "type": "int"
+        },
+        {
+            "name": "verified_purchase",
+            "type": "boolean"
+        },
+        {
+            "name": "category",
+            "type": "string"
+        },
+        {
+            "name": "product_title",
+            "type": "string"
+        },
+        {
+            "name": "price",
+            "type": "double"
+        },
+        {
+            "name": "store",
+            "type": "string"
+        },
+        {
+            "name": "brand",
+            "type": "string"
+        },
+        {
+            "name": "material",
+            "type": "string"
+        },
+        {
+            "name": "style",
+            "type": "string"
+        },
+        {
+            "name": "color",
+            "type": "string"
+        }
+    ]
+}

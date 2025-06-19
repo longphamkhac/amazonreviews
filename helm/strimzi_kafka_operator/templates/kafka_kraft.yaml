@@ -1,0 +1,132 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Values.kafka.name }}-metrics"
+  namespace: {{ .Values.general.namespace }}
+data:
+  metrics-config.yaml: |
+    lowercaseOutputName: true
+    lowercaseOutputLabelNames: true
+    jmxExporter:
+      port: 9404
+    rules:
+      - pattern: "kafka.server<type=BrokerTopicMetrics,name=MessagesInPerSec,topic=(.+)><>OneMinuteRate"
+        name: "kafka_server_topic_messages_in_rate"
+        type: GAUGE
+        labels:
+          topic: "$1"
+      
+      - pattern: ".*"
+        name: "kafka_jmx_$0"
+        type: GAUGE
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: {{ .Values.kafkaNodepool.name }}
+  namespace: {{ .Values.general.namespace }}
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.name }}
+spec:
+  replicas: {{ .Values.kafkaNodepool.replicas }}
+  roles:
+    - broker
+    - controller
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 2Gi
+        deleteClaim: true
+        kraftMetadata: shared
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
+  jvmOptions:
+    "-Xmx": "1g"
+    "-Xms": "1g"
+  # template:
+  #   pod:
+  #     affinity:
+  #       podAntiAffinity:
+  #         requiredDuringSchedulingIgnoredDuringExecution:
+  #           - labelSelector:
+  #               matchLabels:
+  #                 strimzi.io/cluster: {{ .Values.kafka.name }}
+  #                 strimzi.io/name: "kafka-{{ .Values.kafka.name }}"
+  #                 strimzi.io/pool-name: {{ .Values.kafkaNodepool.name }}
+  #             topologyKey: "kubernetes.io/hostname"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: {{ .Values.kafka.name }}
+  namespace: {{ .Values.general.namespace }}
+  annotations:
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
+spec:
+  kafka:
+    version: 4.0.0
+    listeners:
+      - name: {{ .Values.kafka.listeners.name }}
+        port: {{ .Values.kafka.listeners.port }}
+        type: {{ .Values.kafka.listeners.type }}
+        tls: {{ .Values.kafka.listeners.tls }}
+      # - name: external
+      #   port: 19092
+      #   type: cluster-ip
+      #   tls: false
+      # - name: external
+      #   port: 9094
+      #   type: nodeport
+      #   tls: false
+    config:
+      inter.broker.listener.name: PLAINTEXT
+      controller.listener.names: CONTROLLER
+      listener.security.protocol.map: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      default.topic.cleanup.policy: compact
+      num.partitions: 3
+      default.replication.factor: 3
+      min.insync.replicas: 2
+      transaction.state.log.min.isr: 1
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
+      leader.imbalance.check.interval.seconds: 300
+      auto.create.topics.enable: true
+    jmxOptions: {}
+    metricsConfig:
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef:
+          name: {{ .Values.kafka.metricsConfig.name }}
+          key: {{ .Values.kafka.metricsConfig.key }}
+    metadataVersion: 4.0.0
+    # template:
+    #   pod:
+    #     metadata:
+    #       annotations:
+    #         prometheus.io/scrape: "true"
+    #         prometheus.io/port: "9404"
+    #         prometheus.io/path: "/metrics"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: {{ .Values.kafkaTopic.name }}
+  namespace: {{ .Values.general.namespace }}
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.name }}
+spec:
+  topicName: {{ .Values.kafkaTopic.topicName }}
+  partitions: {{ .Values.kafkaTopic.partitions }}
+  replicas: {{ .Values.kafkaTopic.replicas }}
+  config:
+    cleanup.policy: {{ .Values.kafkaTopic.config.cleanupPolicy }}
+    retention.ms: {{ .Values.kafkaTopic.config.retention }}  # 7 days
+    segment.bytes: {{ .Values.kafkaTopic.config.segmentBytes }}  # 1MB

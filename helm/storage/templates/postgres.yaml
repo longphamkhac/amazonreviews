@@ -1,0 +1,134 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.postgres.credentials.name }}
+  namespace: {{ .Values.general.namespace }}
+type: Opaque
+stringData:
+  postgres_username: {{ .Values.postgres.credentials.username }}
+  postgres_password: {{ .Values.postgres.credentials.password }}
+---
+# ConfigMap for PostgreSQL configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Values.postgres.config.name }}-config"
+  namespace: {{ .Values.general.namespace }}
+data:
+  postgresql.conf: |
+    listen_addresses = '*'
+    wal_level = logical
+    max_wal_senders = 10
+    max_replication_slots = 10
+    wal_sender_timeout = 60s
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: "{{ .Values.postgres.config.name }}-sc"
+  namespace: {{ .Values.general.namespace }}
+provisioner: filestore.csi.storage.gke.io
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+parameters:
+  tier: standard
+  network: default
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: "{{ .Values.postgres.config.name }}-pv"
+  namespace: {{ .Values.general.namespace }}
+spec:
+  storageClassName: "{{ .Values.postgres.config.name }}-sc"
+  capacity:
+    storage: {{ .Values.filestore.pv.storage }}
+  accessModes:
+    - {{ .Values.filestore.pvc.accessModes }}
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  csi:
+    driver: filestore.csi.storage.gke.io
+    volumeHandle: "modeInstance/{{ .Values.filestore.pv.volumeHandle.location }}/{{ .Values.filestore.pv.volumeHandle.instanceName }}/{{ .Values.filestore.pv.volumeHandle.shareName }}"
+    volumeAttributes:
+      ip: {{ .Values.filestore.pv.volumeAttributes.ip }}
+      volume: {{ .Values.filestore.pv.volumeAttributes.volume }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "{{ .Values.postgres.config.name }}-pvc"
+  namespace: {{ .Values.general.namespace }}
+spec:
+  accessModes:
+    - {{ .Values.filestore.pvc.accessModes }}
+  storageClassName: "{{ .Values.postgres.config.name }}-sc"
+  volumeName: "{{ .Values.postgres.config.name }}-pv"
+  resources:
+    requests:
+      storage: {{ .Values.filestore.pv.storage }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.postgres.config.name }}
+  namespace: {{ .Values.general.namespace }}
+spec:
+  replicas: {{ .Values.postgres.config.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.postgres.config.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.postgres.config.name }}
+    spec:
+      containers:
+      - name: {{ .Values.postgres.config.name }}
+        image: {{ .Values.postgres.config.image }}
+        ports:
+        - containerPort: {{ .Values.postgres.config.port }}
+        env:
+        - name: POSTGRES_USER
+          # value: admin
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgres.credentials.name }}
+              key: postgres_username
+        - name: POSTGRES_PASSWORD
+          # value: root
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgres.credentials.name }}
+              key: postgres_password
+        - name: POSTGRES_DB
+          value: demo
+        volumeMounts:
+        - name: "{{ .Values.postgres.config.name }}-storage"
+          mountPath: {{ .Values.postgres.config.storageMountPath }}
+          subPath: {{ .Values.postgres.config.subPath }}
+        - name: "{{ .Values.postgres.config.name }}-config"
+          mountPath: {{ .Values.postgres.config.configMountPath }}
+        command: ["docker-entrypoint.sh"]
+        args: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+      volumes:
+      - name: "{{ .Values.postgres.config.name }}-storage"
+        persistentVolumeClaim:
+          claimName: "{{ .Values.postgres.config.name }}-pvc"
+      - name: "{{ .Values.postgres.config.name }}-config"
+        configMap:
+          name: "{{ .Values.postgres.config.name }}-config"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Values.postgres.config.name }}-svc"
+  namespace: {{ .Values.general.namespace }}
+spec:
+  selector:
+    app: {{ .Values.postgres.config.name }}
+  ports:
+  - protocol: {{ .Values.postgres.config.protocol }}
+    port: {{ .Values.postgres.config.port }}
+    targetPort: {{ .Values.postgres.config.port }}
+  type: {{ .Values.postgres.config.svcType }}

@@ -1,0 +1,50 @@
+{
+    "doc": "Item Metadata schema",
+    "name": "ItemSchema",
+    "type": "record",
+    "namespace": "example.avro",
+    "fields": [
+        {
+            "name": "category",
+            "type": "string"
+        },
+        {
+            "name": "parent_product_id",
+            "type": "string"
+        },
+        {
+            "name": "product_title",
+            "type": "string"
+        },
+        {
+            "name": "price",
+            "type": ["null", "float"],
+            "default": null
+        },
+        {
+            "name": "store",
+            "type": ["null", "string"],
+            "default": null
+        },
+        {
+            "name": "brand",
+            "type": ["null", "string"],
+            "default": null
+        },
+        {
+            "name": "material",
+            "type": ["null", "string"],
+            "default": null
+        },
+        {
+            "name": "style",
+            "type": ["null", "string"],
+            "default": null
+        },
+        {
+            "name": "color",
+            "type": ["null", "string"],
+            "default": null
+        }
+    ]
+}

@@ -1,0 +1,69 @@
+{
+    "doc": "Sample of users reviews from Amazon website 2023",
+    "name": "UserReview",
+    "type": "record",
+    "namespace": "example.avro",
+    "fields": [
+        {
+            "name": "created",
+            "type": "string"
+        },
+        {
+            "name": "rating",
+            "type": "int"
+        },
+        {
+            "name": "title",
+            "type": "string"
+        },
+        {
+            "name": "text",
+            "type": "string"
+        },
+        {
+            "name": "small_image_urls",
+            "type": {
+                "type": "array",
+                "items": "string"
+            }
+        },
+        {
+            "name": "medium_image_urls",
+            "type": {
+                "type": "array",
+                "items": "string"
+            }
+        },
+        {
+            "name": "large_image_urls",
+            "type": {
+                "type": "array",
+                "items": "string"
+            }
+        },
+        {
+            "name": "cat_id",
+            "type": "string"
+        },
+        {
+            "name": "parent_cat_id",
+            "type": "string"
+        },
+        {
+            "name": "user_id",
+            "type": "string"
+        },
+        {
+            "name": "timestamp",
+            "type": "string"
+        },
+        {
+            "name": "helpful_vote",
+            "type": "int"
+        },
+        {
+            "name": "verified_purchase",
+            "type": "boolean"
+        }
+    ]
+}

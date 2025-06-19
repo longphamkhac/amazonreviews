@@ -1,0 +1,14 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: node-exporter
+  namespace: node-exporter
+  labels:
+    component: main
+spec:
+  selector:
+    matchLabels:
+      name: node-exporter
+  endpoints:
+  - port: http

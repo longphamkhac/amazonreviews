@@ -1,0 +1,112 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: "{{ .Values.minio.config.name }}-sc"
+  namespace: {{ .Values.general.namespace }}
+provisioner: filestore.csi.storage.gke.io
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+parameters:
+  tier: standard
+  network: default
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: "{{ .Values.minio.config.name }}-pv"
+  namespace: {{ .Values.general.namespace }}
+spec:
+  storageClassName: "{{ .Values.minio.config.name }}-sc"
+  capacity:
+    storage: {{ .Values.filestore.pv.storage }}
+  accessModes:
+    - {{ .Values.filestore.pvc.accessModes }}
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  csi:
+    driver: filestore.csi.storage.gke.io
+    volumeHandle: "modeInstance/{{ .Values.filestore.pv.volumeHandle.location }}/{{ .Values.filestore.pv.volumeHandle.instanceName }}/{{ .Values.filestore.pv.volumeHandle.shareName }}"
+    volumeAttributes:
+      ip: {{ .Values.filestore.pv.volumeAttributes.ip }}
+      volume: {{ .Values.filestore.pv.volumeAttributes.volume }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "{{ .Values.minio.config.name }}-pvc"
+  namespace: {{ .Values.general.namespace }}
+spec:
+  accessModes:
+    - {{ .Values.filestore.pvc.accessModes }}
+  storageClassName: "{{ .Values.minio.config.name }}-sc"
+  volumeName: "{{ .Values.minio.config.name }}-pv"
+  resources:
+    requests:
+      storage: {{ .Values.filestore.pv.storage }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.minio.config.name }}
+  namespace: {{ .Values.general.namespace }}
+spec:
+  replicas: {{ .Values.minio.config.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.minio.config.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.minio.config.name }}
+    spec:
+      containers:
+        - name: {{ .Values.minio.config.name }}
+          image: {{ .Values.minio.config.image }}
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.credentials.name }}
+                  key: access-key
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.credentials.name }}
+                  key: secret-key
+          imagePullPolicy: {{ .Values.minio.config.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.minio.config.uiPort }}
+              protocol: {{ .Values.minio.config.protocol }}
+            - containerPort: {{ .Values.minio.config.internalPort }}
+              protocol: {{ .Values.minio.config.protocol }}
+          volumeMounts:
+            - mountPath: /data
+              name: {{ .Values.minio.config.name }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - minio server /data --console-address :9092
+      volumes:
+        - name: {{ .Values.minio.config.name }}
+          persistentVolumeClaim:
+            claimName: "{{ .Values.minio.config.name }}-pvc"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Values.minio.config.name }}-svc"
+  namespace: {{ .Values.general.namespace }}
+spec:
+  selector:
+    app: {{ .Values.minio.config.name }}
+  type: {{ .Values.minio.config.svcType }}
+  ports:
+    - name: "{{ .Values.minio.config.name }}-ui"
+      protocol: {{ .Values.minio.config.protocol }}
+      port: {{ .Values.minio.config.uiPort }}
+      targetPort: {{ .Values.minio.config.uiPort }}
+    - name: "{{ .Values.minio.config.name }}-backend"
+      protocol: {{ .Values.minio.config.protocol }}
+      port: {{ .Values.minio.config.internalPort }}
+      targetPort: {{ .Values.minio.config.internalPort }}

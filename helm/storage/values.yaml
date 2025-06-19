@@ -1,0 +1,50 @@
+general:
+  namespace: infrastructure
+filestore:
+  pvc:
+    accessModes: ReadWriteMany
+  pv:
+    storage: 1Ti
+    volumeHandle:
+      location: "asia-east1-a"
+      instanceName: amazonreviews-filestore
+      shareName: shared
+    volumeAttributes:
+      ip: 10.242.155.106
+      volume: shared
+postgres:
+  credentials:
+    name: postgres-credentials-separate
+    username: admin
+    password: root
+  config:
+    name: postgres
+    replicas: 1
+    image: postgres:13
+    port: 5432
+    dbName: demo
+    storageMountPath: /var/lib/postgresql/data
+    configMountPath: /etc/postgresql
+    subPath: data
+    ### SVC
+    svcType: ClusterIP
+    protocol: TCP
+    ### PVC
+    storage: 2Gi
+    storageClassName: standard
+minio:
+  credentials:
+    name: minio-credentials
+  config:
+    name: minio
+    replicas: 1
+    image: quay.io/minio/minio:latest
+    imagePullPolicy: IfNotPresent
+    uiPort: 9092
+    internalPort: 9000
+    protocol: TCP
+    ### SVC
+    svcType: ClusterIP
+    ### PVC
+    storage: 2Gi
+    storageClassName: standard

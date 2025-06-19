@@ -1,0 +1,93 @@
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: flink-merge-streams
+  namespace: processor
+spec:
+  image: longpk1/flink_merge_streams:1.0.4
+  flinkVersion: "v1_20"
+  flinkConfiguration:
+    taskmanager.numberOfTaskSlots: "4"
+
+    s3.credentials.provider.class: com.amazonaws.auth.EnvironmentVariableCredentialsProvider # Environment variables (Very Important): https://docs.confluent.io/kafka-connectors/s3-sink/current/overview.html#install-the-amazon-s3-sink-connector
+    s3.endpoint: http://minio-svc.infrastructure.svc.cluster.local:9000
+    # s3.access.key: minio_access_key
+    # s3.secret.key: minio_secret_key
+    s3.path.style.access: "true"
+
+    state.backend: rocksdb
+    state.backend.incremental: "true"
+    # state.checkpoints.dir: file:///flink-data/checkpoints
+    # state.savepoints.dir: file:///flink-data/savepoints
+    state.checkpoints.dir: s3://flink-data/checkpoints
+    state.savepoints.dir: s3://flink-data/savepoints
+
+    execution.checkpointing.interval: "5000"  # Enable checkpoints every 5 seconds
+    execution.checkpointing.mode: "EXACTLY_ONCE"
+  podTemplate:
+    spec:
+      containers:
+      - name: flink-main-container
+        env:
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: minio-credentials
+                key: access-key
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: minio-credentials
+                key: secret-key
+  serviceAccount: flink
+  jobManager:
+    replicas: 1
+    resource:
+      memory: "1g"
+      cpu: 1
+    podTemplate:
+      spec:
+        containers:
+          - name: flink-main-container
+            image: longpk1/flink_merge_streams:1.0.4
+            imagePullPolicy: Always  # Add imagePullPolicy for JobManager
+            startupProbe:  # Add or modify the startup probe
+              httpGet:
+                path: /config
+                port: 8081
+              initialDelaySeconds: 120  # Wait 120 seconds before first probe
+              periodSeconds: 5  # Check every 5 seconds
+              timeoutSeconds: 5  # Timeout after 5 seconds per probe
+              failureThreshold: 48  # Fail after 48 attempts (240 seconds total)
+        #     volumeMounts:
+        #       - mountPath: /flink-data
+        #         name: flink-volume  
+        # volumes:
+        #   - name: flink-volume
+        #     persistentVolumeClaim:
+        #       claimName: flink-pvc
+  taskManager:
+    replicas: 1
+    resource:
+      memory: "1g"
+      cpu: 1
+    podTemplate:
+      spec:
+        containers:
+          - name: flink-main-container
+            image: longpk1/flink_merge_streams:1.0.4
+            imagePullPolicy: Always  # Add imagePullPolicy for JobManager
+        #     volumeMounts:
+        #       - mountPath: /flink-data
+        #         name: flink-volume
+        # volumes:
+        #   - name: flink-volume
+        #     persistentVolumeClaim:
+        #       claimName: flink-pvc
+  job:
+    jarURI: local:///opt/flink/lib/flink-python-1.20.0.jar
+    entryClass: "org.apache.flink.client.python.PythonDriver"
+    args: ["-pyclientexec", "/usr/local/bin/python3", "-py", "/opt/flink/usr/merge_streams_avro.py"]
+    parallelism: 4
+    upgradeMode: savepoint
+    state: running

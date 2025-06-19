@@ -1,0 +1,80 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: connector-configuration-role
+  namespace: {{ .Values.general.namespace }}
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: connector-configuration-role-binding
+  namespace: {{ .Values.general.namespace }}
+subjects:
+- kind: ServiceAccount
+  name: "{{ .Values.kafkaConnect.name }}-connect"
+  namespace: {{ .Values.general.namespace }}
+roleRef:
+  kind: Role
+  name: connector-configuration-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: {{ .Values.kafkaConnect.name }}
+  namespace: {{ .Values.general.namespace }}
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+spec:
+  version: 4.0.0
+  image: {{ .Values.kafkaConnect.image }}
+  replicas: {{ .Values.kafkaConnect.replicas }}
+  bootstrapServers: "{{ .Values.kafka.bootstrapServer }}.{{ .Values.general.namespace }}.svc.cluster.local:{{ .Values.kafka.listeners.port }}"
+  config:
+    group.id: {{ .Values.kafkaConnect.name }}
+    offset.storage.topic: debezium-connect-offsets
+    config.storage.topic: debezium-connect-configs
+    status.storage.topic: debezium-connect-status
+    config.storage.replication.factor: {{ .Values.kafkaConnect.replicationFactor }}
+    offset.storage.replication.factor: {{ .Values.kafkaConnect.replicationFactor }}
+    status.storage.replication.factor: {{ .Values.kafkaConnect.replicationFactor }}
+    config.providers: file
+    config.providers.file.class: org.apache.kafka.common.config.provider.FileConfigProvider
+    key.converter: "org.apache.kafka.connect.json.JsonConverter"
+    value.converter: "org.apache.kafka.connect.json.JsonConverter"
+    key.converter.schemas.enable: false
+    value.converter.schemas.enable: false
+    plugin.path: {{ .Values.kafkaConnect.pluginPath }}  # Explicitly set plugin path
+
+    # Enhanced logging for S3 connector
+    # log4j.root.loglevel: DEBUG
+    # log4j.logger.io.confluent.connect.s3: TRACE
+    # log4j.logger.org.apache.kafka.connect: DEBUG
+    # log4j.logger.com.amazonaws: TRACE
+  externalConfiguration:
+    volumes:
+    - name: connector-config
+      secret:
+        secretName: {{ .Values.kafkaConnect.dbCredentials }}
+    - name: connector-secrets
+      secret:
+        secretName: {{ .Values.kafkaConnect.s3Credentials }}
+  template:
+    connectContainer:
+      env:
+        - name: AWS_ACCESS_KEY_ID
+          # value: minio_access_key
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.kafkaConnect.s3Credentials }}
+              key: access-key
+        - name: AWS_SECRET_ACCESS_KEY
+          # value: minio_secret_key
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.kafkaConnect.s3Credentials }}
+              key: secret-key

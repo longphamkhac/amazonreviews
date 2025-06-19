@@ -1,0 +1,14 @@
+pyspark==3.4.3
+confluent-kafka==2.9.0
+minio==7.2.15
+httpx==0.28.1
+attrs==25.3.0
+cachetools==5.5.2
+Authlib==1.5.2
+fastavro==1.9.7
+uuid_utils==0.10.0
+psycopg2-binary==2.9.7
+sqlalchemy==2.0.20
+pandas==2.0.3
+numpy==1.26.3
+python-schema-registry-client==2.4.1

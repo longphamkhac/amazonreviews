@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: {{ .Values.flink.namespace }}
+  name: airflow-flink-access-role
+rules:
+- apiGroups: ["flink.apache.org"]  # Adjust API group if your Flink Operator uses a different one
+  resources: ["flinkdeployments", "flinkjobmanagers", "flinktaskmanagers"]
+  verbs: ["create", "update", "delete", "get", "list", "watch"]  # Add "create", "update", "delete" if needed
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["create", "get", "list", "watch", "update", "delete"]  # Full control over Jobs
