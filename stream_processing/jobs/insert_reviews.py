@@ -1,23 +1,25 @@
 import json
+import random
 from datetime import datetime
 from time import sleep
+
 from postgresql_client import PostgresSQLClient
-import random
 
 DATABABSE = "demo"
 USER = "admin"
 PASSWORD = "root"
 
-DATA_FOLDER = "Data/processed"
+DATA_FOLDER = "data/processed"
 TABLE_NAME = "raw_reviews"
 JSON_FILE = f"{DATA_FOLDER}/Magazine_Subscriptions.jsonl"
+
 
 def main():
     pc = PostgresSQLClient(
         database=DATABABSE,
         user=USER,
         password=PASSWORD,
-        host="postgres-svc.infrastructure.svc.cluster.local"
+        host="postgres-svc.infrastructure.svc.cluster.local",
     )
 
     create_table_query = f"""
@@ -41,7 +43,7 @@ def main():
     pc.execute_query(create_table_query)
     print("[INFO] Create SQL table successfully !!!")
     columns = pc.get_columns(table_name=TABLE_NAME)
-    
+
     # Insert SQL table
     with open(JSON_FILE) as files:
         for file in files:
@@ -80,6 +82,7 @@ def main():
             print(record)
             time_sleep = random.randrange(1, 5, 1)
             sleep(time_sleep)
+
 
 if __name__ == "__main__":
     main()

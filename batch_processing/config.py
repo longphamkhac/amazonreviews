@@ -23,7 +23,9 @@ SPARK_SQL_KAFKA_JAR = f"{JARS_FOLDER}/spark-sql-kafka-0-10_2.12-3.4.3.jar"
 KAFKA_CLIENTS_JAR = f"{JARS_FOLDER}/kafka-clients-3.4.0.jar"
 COMMONS_POOL_JAR = f"{JARS_FOLDER}/commons-pool2-2.12.1.jar"
 SPARK_STREAMING_KAFKA_JAR = f"{JARS_FOLDER}/spark-streaming-kafka-0-10_2.13-3.4.3.jar"
-SPARK_TOKEN_PROVIDER_KAFKA = f"{JARS_FOLDER}/spark-token-provider-kafka-0-10_2.12-3.4.3.jar"
+SPARK_TOKEN_PROVIDER_KAFKA = (
+    f"{JARS_FOLDER}/spark-token-provider-kafka-0-10_2.12-3.4.3.jar"
+)
 SPARK_CORE_JAR = f"{JARS_FOLDER}/spark-core_2.13-3.4.3.jar"
 
 JARS = f"{DELTA_CORE_JAR}, \

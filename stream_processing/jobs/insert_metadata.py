@@ -1,26 +1,28 @@
 import json
+import random
 from datetime import datetime
 from time import sleep
+
 from postgresql_client import PostgresSQLClient
-import random
 
 DATABABSE = "demo"
 USER = "admin"
 PASSWORD = "root"
 
-DATA_FOLDER = "Data/processed"
+DATA_FOLDER = "data/processed"
 TABLE_NAME = "raw_item_metadata"
 JSON_FILE = f"{DATA_FOLDER}/meta_Magazine_Subscriptions.jsonl"
+
 
 def main():
     pc = PostgresSQLClient(
         database=DATABABSE,
         user=USER,
         password=PASSWORD,
-        host="postgres-svc.infrastructure.svc.cluster.local"
+        host="postgres-svc.infrastructure.svc.cluster.local",
     )
 
-    # Create SQL table 
+    # Create SQL table
     create_table_query = f"""
         CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
             created VARCHAR,
@@ -54,7 +56,15 @@ def main():
             # if raw_data["parent_asin"] != "B01FV533KW":
             #     continue
             for key, value in raw_data.items():
-                if key in ["features", "videos", "categories", "bought_together", "average_rating", "rating_number", "description"]:
+                if key in [
+                    "features",
+                    "videos",
+                    "categories",
+                    "bought_together",
+                    "average_rating",
+                    "rating_number",
+                    "description",
+                ]:
                     continue
                 elif key == "images":
                     hi_res_images, large_images, thumb_images = [], [], []
@@ -91,6 +101,7 @@ def main():
             print(data)
             time_sleep = random.randrange(1, 5, 1)
             sleep(time_sleep)
+
 
 if __name__ == "__main__":
     main()

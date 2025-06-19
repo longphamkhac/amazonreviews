@@ -2,6 +2,7 @@ import pandas as pd
 import psycopg2
 from sqlalchemy import create_engine
 
+
 class PostgresSQLClient:
     def __init__(self, database, user, password, host="127.0.0.1", port="5432"):
         self.database = database
@@ -12,11 +13,11 @@ class PostgresSQLClient:
 
     def create_conn(self):
         conn = psycopg2.connect(
-            database = self.database,
-            user = self.user,
-            password = self.password,
-            host = self.host,
-            port = self.port
+            database=self.database,
+            user=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
         )
 
         return conn

@@ -14,8 +14,12 @@ Additionally, external access can be routed by **Nginx-ingress**. The architectu
 
 ## Architecture overview
 ![Amazon Reviews Architecture](assets/amazonreviews_architecture.png)
-## 🚀 Storage, Infrastructure & Automation
 
+## Spark Operator architecture
+![spark_operator_architecture](assets/spark_operator_architecture.png)
+
+
+## 🚀 Storage, Infrastructure & Automation
 - **Provisioning:** Terraform & Ansible  
 - **CI/CD:** Jenkins  
 - **Platform:** Kubernetes (GKE)
@@ -95,7 +99,7 @@ helm upgrade --install storage helm/storage -n infrastructure
 ### 4. Create MinIO Buckets
 - Execute Minio pod in the `infrastructure` namespace (**Modify the Minio pod name**).
 ```shell
-k exec -it minio-54776d6f4d-qkdpp -n infrastructure -- bash
+kubectl exec -it minio-54776d6f4d-qkdpp -n infrastructure -- bash
 ```
 - Set up the MinIO alias and create buckets for Flink and Kafka tiered storage.
 ```shell
@@ -146,12 +150,12 @@ kubectl get kafkaconnector -n infrastructure
 
 ### 8. Install Flink Operator
 - Deploy Flink Operator using the Helm chart in the `processor` namespace.
-
 ```shell
 helm repo add flink-operator-repo https://downloads.apache.org/flink/flink-kubernetes-operator-1.10.0/
 kubectl create -f https://github.com/jetstack/cert-manager/releases/download/v1.8.2/cert-manager.yaml
 helm install -f helm/flink_operator/helm-values.yaml -n processor flink-kubernetes-operator flink-operator-repo/flink-kubernetes-operator
 ```
+- Download raw JSON files from [Amazon Reviews streaming dataset](https://drive.google.com/drive/folders/1-QI2k0g2MgRGIHDSMPlURCIFtyz_QZuR?usp=drive_link) and put them into `stream_processing/jobs/data/processed` directory.
 - Build and push docker image for reviews and metadata insertion job.
 ```shell
 cd streaming/jobs
@@ -168,20 +172,26 @@ docker push longpk1/flink_merge_streams:1.0.4
 
 ### Follow these steps to set up the batch processing environment.
 
-### 1. Insert raw JSON files to bronze layer
+### 1. Download raw data
+- Download raw JSON files from [Amazon Reviews dataset](https://amazon-reviews-2023.github.io/), put **reviews** JSON files to `batch_processing/data/reviews` and **metadata** JSON files for `batch_processing/data/metadata` directory.
+
+### 2. Insert raw JSON files to bronze layer
 ```shell
-k port-forward svc/minio-svc 9000:9000 -n infrastructure
+kubectl port-forward svc/minio-svc 9000:9000 -n infrastructure
 cd batch_processing && python upload_s3.py
 ```
 
-### 2. Build and push docker image for spark processing
+### 3. Download JAR files
+- Download JAR files from [here](https://drive.google.com/file/d/11Wfdw0NSQMK4q8Pkq0auxIM4wNOB6niZ/view?usp=drive_link) and them to `batch_processing/jars` directory.
+
+### 4. Build and push docker image for spark processing
 ```shell
 cd batch_processing
 docker build -t longpk1/spark_processing .
 docker push longpk1/spark_processing
 ```
 
-### 3. Install Spark Operator
+### 5. Install Spark Operator
 ```shell
 helm repo add spark-operator https://kubeflow.github.io/spark-operator
 helm install spark-operator spark-operator/spark-operator --namespace processor --version 1.2.7 --set serviceAccounts.spark.create=true --set serviceAccounts.spark.name=spark-operator-controller --set sparkJobNamespace=processor --set logLevel=4 --create-namespace
