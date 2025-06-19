@@ -16,6 +16,7 @@ Additionally, external access can be routed by **Nginx-ingress**. The architectu
 ![Amazon Reviews Architecture](assets/amazonreviews_architecture.png)
 
 ## Spark Operator architecture
+The image below is the detailed illustration about how Spark Operator handles Spark Jobs and manages kubernetes resources. More details can be found [here](https://www.kubeflow.org/docs/components/spark-operator/overview/).
 ![spark_operator_architecture](assets/spark_operator_architecture.png)
 
 
@@ -280,7 +281,7 @@ kubectl get sparkapplication -n processor
 ![spark_application_complete](assets/spark_application_complete.png)
 
 ### Verify gold star schema in warehouse
-- Gold star schema diagram
+- The image below shows the gold star schema diagram in data warehouse.
 ![gold_star_schema](assets/gold_star_schema.png)
 - After generate gold star schema successfully, we can query in data warehouse for all tables. For example, we can query the `dim_store_performance` table and see that the brand `GE Appliances` has the highest revenue, which is nearly `5 million US dollars` !!!
 ![query_warehouse](assets/query_warehouse.png)
