@@ -50,7 +50,7 @@ Additionally, external access can be routed by **Nginx-ingress**. The architectu
 ### Set up infrastructure using Terraform
 You can follow the instructions (install gcloud CLI, create GKE cluster, enable Filestore CSI driver) from [this repository](https://github.com/longphamkhac/IQA)
 
-If you encounter the `terraform oauth2` error, please fix by this command:
+- If you encounter the `terraform oauth2` error, please fix by this command:
 ```shell
 gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform
 ```
@@ -58,7 +58,7 @@ gcloud auth application-default login --scopes=https://www.googleapis.com/auth/c
 ### Follow these steps to set up the stream processing environment.
 
 ### 1. Create Kubernetes Namespaces
-Create namespaces for infrastructure, processor, and airflow.
+- Create namespaces for infrastructure, processor, and airflow.
 
 ```shell
 kubectl create namespace infrastructure &&
@@ -67,7 +67,7 @@ kubectl create namespace airflow
 ```
 
 ### 2. Install Postgres and MinIO Credentials
-Create Kubernetes secrets for Postgres and MinIO credentials in the specified namespaces.
+- Create Kubernetes secrets for Postgres and MinIO credentials in the specified namespaces.
 
 ```shell
 kubectl create secret generic postgres-credentials \
@@ -86,7 +86,7 @@ kubectl create secret generic minio-credentials \
 ```
 
 ### 3. Install Storage (Postgres and MinIO)
-Deploy Postgres and MinIO using the Helm chart in the `infrastructure` namespace.
+- Deploy Postgres and MinIO using the Helm chart in the `infrastructure` namespace.
 
 ```shell
 helm upgrade --install storage helm/storage -n infrastructure
@@ -152,7 +152,7 @@ helm repo add flink-operator-repo https://downloads.apache.org/flink/flink-kuber
 kubectl create -f https://github.com/jetstack/cert-manager/releases/download/v1.8.2/cert-manager.yaml
 helm install -f helm/flink_operator/helm-values.yaml -n processor flink-kubernetes-operator flink-operator-repo/flink-kubernetes-operator
 ```
-#### Build and push docker image for reviews and metadata insertion job
+- Build and push docker image for reviews and metadata insertion job.
 ```shell
 cd streaming/jobs
 docker build -t longpk1/insert_reviews -f reviews/Dockerfile .
@@ -160,7 +160,7 @@ docker push longpk1/insert_reviews
 docker build -t longpk1/insert_metadata -f metadata/Dockerfile .
 docker push longpk1/insert_metadata
 ```
-#### Build and push docker image for merging streams job
+- Build and push docker image for merging streams job.
 ```shell
 docker build -t longpk1/flink_merge_streams:1.0.4 stream_processing/merge/.
 docker push longpk1/flink_merge_streams:1.0.4
@@ -229,24 +229,24 @@ kubectl auth can-i create jobs -n processor --as=system:serviceaccount:airflow:a
 
 ### 5. Create configmap for Spark jobs
 ```shell
-k create configmap spark-raw2delta-avro --from-file=k8s/spark/spark_application/raw2delta-avro.yaml -n airflow &&
-k create configmap spark-merge2delta --from-file=k8s/spark/spark_application/merge2delta.yaml -n airflow &&
-k create configmap spark-adding-uuidv7 --from-file=k8s/spark/spark_application/adding-uuidv7.yaml -n airflow &&
-k create configmap spark-generate-gold-schema --from-file=k8s/spark/spark_application/generate-gold-schema.yaml -n airflow &&
-k create configmap spark-streaming-data --from-file=k8s/spark/spark_application/streaming-data.yaml -n airflow
+kubectl create configmap spark-raw2delta-avro --from-file=k8s/spark/spark_application/raw2delta-avro.yaml -n airflow &&
+kubectl create configmap spark-merge2delta --from-file=k8s/spark/spark_application/merge2delta.yaml -n airflow &&
+kubectl create configmap spark-adding-uuidv7 --from-file=k8s/spark/spark_application/adding-uuidv7.yaml -n airflow &&
+kubectl create configmap spark-generate-gold-schema --from-file=k8s/spark/spark_application/generate-gold-schema.yaml -n airflow &&
+kubectl create configmap spark-streaming-data --from-file=k8s/spark/spark_application/streaming-data.yaml -n airflow
 ```
 
 ### 6. Create configmap for Flink jobs
 ```shell
-k create configmap insert-reviews --from-file=k8s/flink/jobs/insert-reviews.yaml -n airflow &&
-k create configmap insert-metadata --from-file=k8s/flink/jobs/insert-metadata.yaml -n airflow &&
-k create configmap flink-merge-streams --from-file=k8s/flink/flinkapplication/flink-merge-streams.yaml -n airflow
+kubectl create configmap insert-reviews --from-file=k8s/flink/jobs/insert-reviews.yaml -n airflow &&
+kubectl create configmap insert-metadata --from-file=k8s/flink/jobs/insert-metadata.yaml -n airflow &&
+kubectl create configmap flink-merge-streams --from-file=k8s/flink/flinkapplication/flink-merge-streams.yaml -n airflow
 ```
 
 ### 7. Create schema in PostgreSQL database
-Port forward `postgres-svc` service and create `test` schema in `dbeaver` manually
+- Port forward `postgres-svc` service and create `test` schema in `dbeaver` manually
 ```shell
-k port-forward svc/postgres-svc 5432:5432 -n infrastructure
+kubectl port-forward svc/postgres-svc 5432:5432 -n infrastructure
 ```
 
 ### Start data processing pipeline
@@ -261,11 +261,11 @@ k port-forward svc/postgres-svc 5432:5432 -n infrastructure
 
 After a while waiting for Spark jobs running, you can verify if they complete successfully:
 ```shell
-k get pod -n processor
+kubectl get pod -n processor
 ```
 ![spark_jobs_complete](assets/spark_jobs_complete.png)
 ```shell
-k get sparkapplication -n processor
+kubectl get sparkapplication -n processor
 ```
 ![spark_application_complete](assets/spark_application_complete.png)
 
