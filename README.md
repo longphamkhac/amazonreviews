@@ -352,6 +352,7 @@ kubectl create clusterrolebinding anonymous-admin-binding --clusterrole=admin --
 ```
 
 ## TODO
+- Refactor and optimize code flow.
 - Deploy Log and Traces Storage services such as Elasticsearch and Jaeger.
 - Fix bug Metabase export for visualization and report.
 
