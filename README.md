@@ -1,5 +1,4 @@
 # AMAZON REVIEWS PROCESSING APPLICATION DEPLOYED ON GOOGLE KUBERNETES ENGINE (GKE)
-
 ## Introduction
 This project implements a robust, cloud-native data processing pipeline for the [**Amazon Reviews dataset**](https://amazon-reviews-2023.github.io/), leveraging both streaming and batch paradigms. Deployed on a **Google Kubernetes Engine (GKE)** cluster, the system is provisioned and automated using **Terraform** and **Ansible** for infrastructure setup, with **Jenkins** handling CI/CD pipelines. The data—comprising user reviews and item metadata—enters the system through two main channels:
 * **Stream processing**: The stream processing pipeline is built to capture real-time changes using **Apache Flink** and **Apache Kafka**. Data changes from the PostgreSQL database are captured through **Kafka Connect** using the **Debezium connector**, and published to Kafka topics (`review` and `metadata`) managed by the Strimzi Kafka Operator. For durability and optimized storage, these streams are also replicated from hot to cold storage (**Minio**) using the Kafka **S3 Sink Connector**. Flink jobs, managed by the **Flink Kubernetes Operator**, consume these streams, apply schema validation via the **Schema Registry**, and perform transformations like data cleaning and filtering. The system then joins the `review` and `metadata` streams on the `parent_asin` field to produce a merged output stream, which is written to the `merged_reviews_metadata` Kafka topic for downstream consumption.
@@ -226,7 +225,7 @@ sudo nano /etc/hosts
 ```
 ![ingress](assets/ingress.png)
 
-### 4. Grant the permissions for default and airflow-worker service account to access sparkapplication, flinkdeployment and job resources
+### 4. Grant the permissions for default and airflow-worker service account to access SparkApplication, FlinkDeployment and Job resources
 ```shell
 helm upgrade --install permission helm/permission -n airflow
 ```
