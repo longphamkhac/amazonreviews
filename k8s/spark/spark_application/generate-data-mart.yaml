@@ -1,7 +1,7 @@
 apiVersion: sparkoperator.k8s.io/v1beta2
 kind: SparkApplication
 metadata:
-  name: spark-merge2delta
+  name: spark-generate-data-mart
   namespace: processor
 spec:
   type: Python
@@ -9,10 +9,16 @@ spec:
   mode: cluster
   image: longpk1/spark_processing:1.0.8
   imagePullPolicy: Always
-  mainApplicationFile: local:///opt/spark/work-dir/convert_merge2delta.py
+  mainApplicationFile: local:///opt/spark/work-dir/generate_data_mart.py
   sparkVersion: 3.4.3
+  # sparkConf:
+  #   spark.shuffle.file.buffer: 64k  # Increase shuffle buffer size
+  #   spark.shuffle.io.maxRetries: "10"  # Increase retry attempts
+  #   spark.shuffle.io.retryWait: 10s  # Increase retry wait time
+  #   spark.memory.fraction: "0.8"  # Increase memory fraction for shuffle
+  #   spark.memory.storageFraction: "0.5"  # Adjust storage fraction
   driver:
-    cores: 1
+    cores: 2
     # memory: 4096m
     memory: 1g  # Increased from 4Gi to 8Gi
     # memory: 2g  # Increased from 4Gi to 8Gi
@@ -73,10 +79,9 @@ spec:
     # instances: 3
     # cores: 4
     # memory: 1024m
-    instances: 1  # Increased from 3 to 4
+    instances: 2  # Increased from 3 to 4
     cores: 1
     memory: 1g  # Increased from 1Gi to 6Gi
-    # memory: 1g  # Increased from 1Gi to 6Gi
     labels:
       version: 3.4.3
     env:
@@ -108,3 +113,12 @@ spec:
         value: metadata
       - name: SCHEMA_REGISTRY_ENDPOINT
         value: http://schema-registry-svc.infrastructure.svc.cluster.local:8081
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                spark-role: executor
+                spark-app-name: amazon-reviews-batching
+                sparkoperator.k8s.io/app-name: spark-generate-data-mart
+            topologyKey: kubernetes.io/hostname

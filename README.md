@@ -7,7 +7,8 @@ This project implements a robust, cloud-native data processing pipeline for the 
   2. **Merge-processing:** Enriches data by merging reviews and metadata, similar to the streaming pipeline.
   3. **Adding-uuidv7:** Adds a unique `review_id` (UUIDv7) to each review from historical data as a primary key.
   4. **Handle-streaming-data:** Consumes the `merged_reviews_metadata` Kafka topic in micro-batches, decodes byte streams, adds UUIDv7, and stores clean data in Minio alongside historical records.
-  5. **Generate-gold-schema:** Merges clean batch and stream data, applies SQL transformations, and builds the gold layer in a star schema format, which is then stored in PostgreSQL for analytics and reporting.
+  5. **Generate-gold-schema:** Merges clean batch and stream data, applies SQL transformations, builds a snowflake schema format, which is then stored in PostgreSQL for querying.
+  6. **Generate-data-mart:** Merges clean batch and stream data, applies SQL transformations, and builds the data marts in the gold layer, which is then stored in PostgreSQL, ready for analytics and reporting.
 
 Additionally, external access can be routed by **Nginx-ingress**. The architecture also includes a **Hive Metastore** and **Trino** for parallel querying parquet files (Delta Lake format) directly from Minio. For monitoring and observability, **Prometheus**, managed by the **Prometheus Operator**, collects metrics from Kafka, Flink, and Spark processors. These are visualized in **Grafana**, with real-time alerts pushed to **Slack** in case of anomalies, ensuring operational reliability and transparency across the pipeline.
 
@@ -187,8 +188,8 @@ cd batch_processing && python upload_s3.py
 ### 4. Build and push docker image for spark processing
 ```shell
 cd batch_processing
-docker build -t longpk1/spark_processing .
-docker push longpk1/spark_processing
+docker build -t longpk1/spark_processing:1.0.8 .
+docker push longpk1/spark_processing:1.0.8
 ```
 
 ### 5. Install Spark Operator
@@ -201,8 +202,8 @@ helm install spark-operator spark-operator/spark-operator --namespace processor 
 
 ### 1. Build and push docker image for Airflow pipeline
 ```shell
-docker build -t longpk1/airflow_pipeline k8s/airflow/
-docker push longpk1/airflow_pipeline
+docker build -t longpk1/airflow_pipeline:1.0.3 k8s/airflow/
+docker push longpk1/airflow_pipeline:1.0.3
 ```
 
 ### 2. Deploy Airflow orchestration
@@ -243,6 +244,7 @@ kubectl create configmap spark-raw2delta-avro --from-file=k8s/spark/spark_applic
 kubectl create configmap spark-merge2delta --from-file=k8s/spark/spark_application/merge2delta.yaml -n airflow &&
 kubectl create configmap spark-adding-uuidv7 --from-file=k8s/spark/spark_application/adding-uuidv7.yaml -n airflow &&
 kubectl create configmap spark-generate-gold-schema --from-file=k8s/spark/spark_application/generate-gold-schema.yaml -n airflow &&
+kubectl create configmap spark-generate-data-mart --from-file=k8s/spark/spark_application/generate-data-mart.yaml -n airflow &&
 kubectl create configmap spark-streaming-data --from-file=k8s/spark/spark_application/streaming-data.yaml -n airflow
 ```
 
@@ -280,9 +282,11 @@ kubectl get sparkapplication -n processor
 ![spark_application_complete](assets/spark_application_complete.png)
 
 ### Verify gold star schema in warehouse
-- The image below shows the gold star schema diagram in data warehouse.
-![gold_star_schema](assets/gold_star_schema.png)
-- After generate gold star schema successfully, we can query in data warehouse for all tables. For example, we can query the `dim_store_performance` table and see that the brand `GE Appliances` has the highest revenue, which is nearly `5 million US dollars` !!!
+- The image below shows the gold snowflake schema diagram in data warehouse.
+![gold_snowflake_schema](assets/gold_snowflake_schema.png)
+- The data marts in the gold layer are shown below.
+![datamarts](assets/datamarts.png)
+- After generate data marts successfully, we can query in data warehouse for all tables. For example, we can query the `mart_store_performance` table and see that the store [NELEUS](https://www.amazon.com/stores/NELEUS/page/A0E160C9-23A6-49A7-9ED4-CC0C095BF717), a sportswear brand, has the highest revenue, which is nearly `2 million US dollars` !!!
 ![query_warehouse](assets/query_warehouse.png)
 
 ### Install Hive Metastore and Trino for OLAP
