@@ -87,5 +87,6 @@ def create_tables():
 
     print("[INFO] Create SQL tables for gold schema successfully!!!")
 
+
 if __name__ == "__main__":
     create_tables()

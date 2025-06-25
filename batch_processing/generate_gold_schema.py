@@ -148,5 +148,6 @@ def main():
 
     print("[INFO] Save gold schema successfully!!!")
 
+
 if __name__ == "__main__":
     main()

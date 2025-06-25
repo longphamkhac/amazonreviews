@@ -1,12 +1,13 @@
-from postgresql_client import PostgresSQLClient
 from config_k8s import *
+from postgresql_client import PostgresSQLClient
 
 pc = PostgresSQLClient(
     database=WAREHOUSE_DATABASE,
     user=WAREHOUSE_USER,
     password=WAREHOUSE_PASSWORD,
-    host=WAREHOUSE_ENDPOINT
+    host=WAREHOUSE_ENDPOINT,
 )
+
 
 def create_tables():
     # Drop dependent tables first (reverse dependency order)
@@ -18,7 +19,7 @@ def create_tables():
         f"DROP TABLE IF EXISTS {WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_reviews CASCADE",
         f"DROP TABLE IF EXISTS {WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_products CASCADE",
         f"DROP TABLE IF EXISTS {WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_categories CASCADE",
-        f"DROP TABLE IF EXISTS {WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_store_performance CASCADE"
+        f"DROP TABLE IF EXISTS {WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_store_performance CASCADE",
     ]
     for query in drop_queries:
         pc.execute_query(query)
@@ -138,6 +139,7 @@ def create_tables():
     pc.execute_query(mart_reviews_create)
 
     print("[INFO] Create SQL tables for gold schema successfully!!!")
+
 
 if __name__ == "__main__":
     create_tables()
