@@ -1,7 +1,7 @@
 import uuid_utils as uuid
 # from config import *
 from config_k8s import *
-from create_gold_schema_tables import *
+from create_silver_schema_tables import *
 from minio import Minio
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf

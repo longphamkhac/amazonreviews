@@ -7,7 +7,7 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: longpk1/spark_processing:1.0.8
+  image: longpk1/spark_processing:1.1.1
   imagePullPolicy: Always
   mainApplicationFile: local:///opt/spark/work-dir/convert_merge2delta.py
   sparkVersion: 3.4.3

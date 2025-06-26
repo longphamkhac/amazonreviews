@@ -53,29 +53,6 @@ def main():
     )
     df_merge.createOrReplaceTempView("merge_data")
 
-    ## mart_time
-    mart_time_query = """
-        SELECT 
-            time_id,
-            timestamp as review_date,
-            YEAR(timestamp) as year,
-            MONTH(timestamp) as month,
-            DAY(timestamp) as day,
-            QUARTER(timestamp) as quarter
-        FROM merge_data
-    """
-    mart_time_df = spark.sql(mart_time_query)
-    mart_time_df.write.format("jdbc").option("url", postgres_url).option(
-        "dbtable", f"{WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_time"
-    ).option("user", f"{WAREHOUSE_USER}").option(
-        "password", f"{WAREHOUSE_PASSWORD}"
-    ).option(
-        "driver", "org.postgresql.Driver"
-    ).mode(
-        "append"
-    ).save()
-    print("[INFO] Create mart_time table successfully!!!")
-
     ## mart_users
     mart_users_query = """
         WITH user_buy_products AS (
@@ -118,26 +95,6 @@ def main():
         "append"
     ).save()
     print("[INFO] Create mart_users table successfully!!!")
-
-    ## mart_reviews
-    mart_reviews_text_query = """
-        SELECT 
-            review_id,
-            review_title,
-            review_text
-        FROM merge_data
-    """
-    mart_reviews_text_df = spark.sql(mart_reviews_text_query)
-    mart_reviews_text_df.write.format("jdbc").option("url", postgres_url).option(
-        "dbtable", f"{WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_reviews_details"
-    ).option("user", f"{WAREHOUSE_USER}").option(
-        "password", f"{WAREHOUSE_PASSWORD}"
-    ).option(
-        "driver", "org.postgresql.Driver"
-    ).mode(
-        "append"
-    ).save()
-    print("[INFO] Create mart_reviews_details table successfully!!!")
 
     ## mart_parent_products
     mart_parent_products_query = """
@@ -231,32 +188,6 @@ def main():
         "append"
     ).save()
     print("[INFO] Create mart_store_performance table successfully!!!")
-
-    ## mart_products
-    mart_products_query = """
-        SELECT 
-            product_id,
-            FIRST(parent_product_id) as parent_product_id,
-            FIRST(category) as category,
-            FIRST(store) as store,
-            FIRST(product_title) as product_title,
-            FIRST(price) as price,
-            FIRST(brand) as brand,
-            FIRST(material) as material
-        FROM merge_data
-        GROUP BY product_id
-    """
-    mart_products_df = spark.sql(mart_products_query)
-    mart_products_df.write.format("jdbc").option("url", postgres_url).option(
-        "dbtable", f"{WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_products"
-    ).option("user", f"{WAREHOUSE_USER}").option(
-        "password", f"{WAREHOUSE_PASSWORD}"
-    ).option(
-        "driver", "org.postgresql.Driver"
-    ).mode(
-        "append"
-    ).save()
-    print("[INFO] Create mart_products table successfully!!!")
 
     ## mart_reviews
     mart_reviews_query = """

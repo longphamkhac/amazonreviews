@@ -10,7 +10,7 @@ filestore:
       instanceName: amazonreviews-filestore
       shareName: shared
     volumeAttributes:
-      ip:	10.127.27.106
+      ip:	10.188.181.122
       volume: shared
 postgres:
   credentials:

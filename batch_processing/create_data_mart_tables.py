@@ -12,31 +12,14 @@ pc = PostgresSQLClient(
 def create_tables():
     # Drop dependent tables first (reverse dependency order)
     drop_queries = [
-        f"DROP TABLE IF EXISTS {WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_reviews_details CASCADE",
-        f"DROP TABLE IF EXISTS {WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_products CASCADE",
-        f"DROP TABLE IF EXISTS {WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_time CASCADE",
+        f"DROP TABLE IF EXISTS {WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_parent_products CASCADE",
         f"DROP TABLE IF EXISTS {WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_users CASCADE",
         f"DROP TABLE IF EXISTS {WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_reviews CASCADE",
-        f"DROP TABLE IF EXISTS {WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_products CASCADE",
         f"DROP TABLE IF EXISTS {WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_categories CASCADE",
         f"DROP TABLE IF EXISTS {WAREHOUSE_DATABASE}.{DATAMART_SCHEMA}.mart_store_performance CASCADE",
     ]
     for query in drop_queries:
         pc.execute_query(query)
-
-    # martension: mart_time
-    mart_time_table = f"{DATAMART_SCHEMA}.mart_time"
-    mart_time_create = f"""
-        CREATE TABLE IF NOT EXISTS {mart_time_table} (
-            time_id VARCHAR PRIMARY KEY,
-            review_date TIMESTAMP,
-            year INTEGER,
-            month INTEGER,
-            day INTEGER,
-            quarter INTEGER
-        );
-    """
-    pc.execute_query(mart_time_create)
 
     # martension: mart_users
     mart_users_table = f"{DATAMART_SCHEMA}.mart_users"
@@ -53,17 +36,6 @@ def create_tables():
         );
     """
     pc.execute_query(mart_users_create)
-
-    # martension: mart_reviews_text
-    mart_reviews_text_table = f"{DATAMART_SCHEMA}.mart_reviews_details"
-    mart_reviews_text_create = f"""
-        CREATE TABLE IF NOT EXISTS {mart_reviews_text_table} (
-            review_id VARCHAR PRIMARY KEY,
-            review_title VARCHAR,
-            review_text VARCHAR
-        );
-    """
-    pc.execute_query(mart_reviews_text_create)
 
     # martension: mart_parent_products
     mart_parent_products_table = f"{DATAMART_SCHEMA}.mart_parent_products"
@@ -104,23 +76,6 @@ def create_tables():
         );
     """
     pc.execute_query(mart_store_performance_create)
-
-    # martension: mart_products
-    mart_products_table = f"{DATAMART_SCHEMA}.mart_products"
-    mart_products_create = f"""
-        CREATE TABLE IF NOT EXISTS {mart_products_table} (
-            product_id VARCHAR,
-            parent_product_id VARCHAR,
-            category VARCHAR,
-            store VARCHAR,
-            product_title VARCHAR,
-            price FLOAT,
-            brand VARCHAR,
-            material VARCHAR,
-            PRIMARY KEY (product_id)
-        );
-    """
-    pc.execute_query(mart_products_create)
 
     # martension: mart_reviews
     mart_reviews_table = f"{DATAMART_SCHEMA}.mart_reviews"

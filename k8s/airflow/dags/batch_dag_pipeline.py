@@ -175,32 +175,32 @@ with DAG(
         get_logs=True,  # Stream logs to Airflow
     )
 
-    spark_generate_gold_schema_task = KubernetesPodOperator(
+    spark_generate_silver_schema_task = KubernetesPodOperator(
         # namespace='spark-operator',
         namespace='airflow',
         image='bitnami/kubectl:latest',
-        task_id='submit_generate_gold_schema',
-        name='spark-generate-gold-schema',
+        task_id='submit_generate_silver_schema',
+        name='spark-generate-silver-schema',
         cmds=["kubectl"],
-        arguments=["apply", "-f", "/generate-gold-schema.yaml"],
+        arguments=["apply", "-f", "/generate-silver-schema.yaml"],
         config_file=None,
         volume_mounts=[V1VolumeMount(
             name='spark-yaml',
-            mount_path='/generate-gold-schema.yaml',
-            sub_path='generate-gold-schema.yaml',
+            mount_path='/generate-silver-schema.yaml',
+            sub_path='generate-silver-schema.yaml',
             read_only=True
         )],
         volumes=[V1Volume(
             name='spark-yaml',
-            config_map={'name': 'spark-generate-gold-schema'}
+            config_map={'name': 'spark-generate-silver-schema'}
         )],
         is_delete_operator_pod=False,
         get_logs=True
     )
 
-    # wait_for_generate_gold_schema = KubernetesPodOperator(
-    #     task_id='wait_for_generate_gold_schema',
-    #     name='wait-for-generate-gold-schema',
+    # wait_for_generate_silver_schema = KubernetesPodOperator(
+    #     task_id='wait_for_generate_silver_schema',
+    #     name='wait-for-generate-silver-schema',
     #     namespace='airflow',
     #     image='bitnami/kubectl:latest',
     #     cmds=["/bin/bash"],
@@ -208,18 +208,18 @@ with DAG(
     #         "-c",
     #         """
     #         for i in {1..18000}; do
-    #             STATUS=$(kubectl get sparkapplication spark-generate-gold-schema -n processor -o jsonpath='{.status.applicationState.state}' 2>/dev/null)
+    #             STATUS=$(kubectl get sparkapplication spark-generate-silver-schema -n processor -o jsonpath='{.status.applicationState.state}' 2>/dev/null)
     #             if [ "$STATUS" = "COMPLETED" ]; then
-    #                 echo "SparkApplication spark-generate-gold-schema completed successfully"
+    #                 echo "SparkApplication spark-generate-silver-schema completed successfully"
     #                 exit 0
     #             elif [ "$STATUS" = "FAILED" ]; then
-    #                 echo "SparkApplication spark-generate-gold-schema failed"
+    #                 echo "SparkApplication spark-generate-silver-schema failed"
     #                 exit 1
     #             fi
-    #             echo "Waiting for spark-generate-gold-schema... (Attempt $i/18000)"
+    #             echo "Waiting for spark-generate-silver-schema... (Attempt $i/18000)"
     #             sleep 10
     #         done
-    #         echo "Timeout waiting for spark-generate-gold-schema to complete"
+    #         echo "Timeout waiting for spark-generate-silver-schema to complete"
     #         exit 1
     #         """
     #     ],
@@ -279,5 +279,6 @@ with DAG(
     #     get_logs=True,  # Stream logs to Airflow
     # )
 
-    spark_raw2delta_avro_task >> wait_for_raw2delta_avro >> spark_merge2delta_task >> wait_for_merge2delta >> spark_adding_uuidv7_task >> wait_for_adding_uuidv7 >> [spark_generate_gold_schema_task, spark_generate_data_mart_task]
+    spark_raw2delta_avro_task >> wait_for_raw2delta_avro >> spark_merge2delta_task >> wait_for_merge2delta >> spark_adding_uuidv7_task >> wait_for_adding_uuidv7 >> [spark_generate_silver_schema_task, spark_generate_data_mart_task]
+    # spark_raw2delta_avro_task >> wait_for_raw2delta_avro >> spark_merge2delta_task >> wait_for_merge2delta >> spark_adding_uuidv7_task >> wait_for_adding_uuidv7 >> spark_generate_data_mart_task
     # spark_generate_data_mart_task >> wait_for_generate_data_mart
