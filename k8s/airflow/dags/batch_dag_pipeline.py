@@ -279,6 +279,6 @@ with DAG(
     #     get_logs=True,  # Stream logs to Airflow
     # )
 
-    spark_raw2delta_avro_task >> wait_for_raw2delta_avro >> spark_merge2delta_task >> wait_for_merge2delta >> spark_adding_uuidv7_task >> wait_for_adding_uuidv7 >> [spark_generate_silver_schema_task, spark_generate_data_mart_task]
-    # spark_raw2delta_avro_task >> wait_for_raw2delta_avro >> spark_merge2delta_task >> wait_for_merge2delta >> spark_adding_uuidv7_task >> wait_for_adding_uuidv7 >> spark_generate_data_mart_task
+    # spark_raw2delta_avro_task >> wait_for_raw2delta_avro >> spark_merge2delta_task >> wait_for_merge2delta >> spark_adding_uuidv7_task >> wait_for_adding_uuidv7 >> [spark_generate_silver_schema_task, spark_generate_data_mart_task]
+    spark_raw2delta_avro_task >> wait_for_raw2delta_avro >> spark_merge2delta_task >> wait_for_merge2delta >> spark_adding_uuidv7_task >> wait_for_adding_uuidv7 >> spark_generate_data_mart_task
     # spark_generate_data_mart_task >> wait_for_generate_data_mart

@@ -43,14 +43,15 @@ def main():
     df_merge = spark.read.format("delta").load(
         f"s3a://{BUCKET_NAME}/{MERGE_DATA_FOLDER}"
     )
-    df_merge = df_merge.withColumn(
-        "review_id", uuidv7_udf()
-    )  # adding review_id as uuidv7
-    df_merge = df_merge.withColumn("time_id", uuidv7_udf())  # adding time_id as uuidv7
+    df_merge = df_merge.withColumn("review_id", uuidv7_udf())
+    df_merge = df_merge.withColumn("store_id", uuidv7_udf())
+    df_merge = df_merge.withColumn("category_id", uuidv7_udf())
+
+    # df_merge = df_merge.withColumn("time_id", uuidv7_udf())
     df_merge.createOrReplaceTempView("temp")
     spark.sql(
         """
-            SELECT review_id, time_id
+            SELECT review_id, store_id, category_id
             FROM temp
         """
     ).show()

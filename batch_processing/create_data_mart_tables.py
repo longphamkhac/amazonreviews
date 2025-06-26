@@ -54,7 +54,8 @@ def create_tables():
     mart_categories_table = f"{DATAMART_SCHEMA}.mart_categories"
     mart_categories_create = f"""
         CREATE TABLE IF NOT EXISTS {mart_categories_table} (
-            category VARCHAR PRIMARY KEY,
+            category_id VARCHAR PRIMARY KEY,
+            category_name VARCHAR,
             total_products BIGINT,
             total_helpful_votes BIGINT,
             total_reviews BIGINT,
@@ -68,7 +69,8 @@ def create_tables():
     mart_store_performance_table = f"{DATAMART_SCHEMA}.mart_store_performance"
     mart_store_performance_create = f"""
         CREATE TABLE IF NOT EXISTS {mart_store_performance_table} (
-            store VARCHAR PRIMARY KEY,
+            store_id VARCHAR PRIMARY KEY,
+            store_name VARCHAR,
             total_reviews BIGINT,
             avg_rating FLOAT,
             total_sell_products BIGINT,
@@ -83,7 +85,6 @@ def create_tables():
         CREATE TABLE IF NOT EXISTS {mart_reviews_table} (
             review_id VARCHAR,
             user_id VARCHAR,
-            time_id VARCHAR,
             product_id VARCHAR,
             rating FLOAT,
             verified_purchase BOOLEAN,

@@ -70,7 +70,7 @@ defaultAirflowRepository: longpk1/airflow_pipeline
 
 # Default airflow tag to deploy
 # defaultAirflowTag: "2.10.5"
-defaultAirflowTag: "1.0.5"
+defaultAirflowTag: "1.0.6"
 
 # Default airflow digest. If specified, it takes precedence over tag
 defaultAirflowDigest: ~

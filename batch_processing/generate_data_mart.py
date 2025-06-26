@@ -135,7 +135,8 @@ def main():
             GROUP BY category
         )
         SELECT 
-            d1.category,
+            d1.category_id,
+            d1.category as category_name,
             COUNT(DISTINCT d1.parent_product_id) as total_products,
             SUM(d1.helpful_vote) as total_helpful_votes,
             COUNT(*) as total_reviews,
@@ -166,7 +167,8 @@ def main():
             GROUP BY store
         )
         SELECT 
-            d1.store,
+            d1.store_id,
+            d1.store as store_name,
             COUNT(*) as total_reviews,
             ROUND(AVG(d1.rating)) as avg_rating,
             COUNT(DISTINCT d1.parent_product_id) as total_sell_products,
@@ -194,7 +196,6 @@ def main():
         SELECT 
             review_id, 
             user_id, 
-            time_id, 
             product_id, 
             rating, 
             verified_purchase, 

@@ -32,8 +32,11 @@ BATCH_PROCESSING_TIME = "3 minute"
 
 ### Postgres config
 WAREHOUSE_DATABASE = os.getenv("WAREHOUSE_DATABASE", "demo")
+# WAREHOUSE_ENDPOINT = os.getenv(
+#     "WAREHOUSE_ENDPOINT", "postgres-svc.infrastructure.svc.cluster.local"
+# )
 WAREHOUSE_ENDPOINT = os.getenv(
-    "WAREHOUSE_ENDPOINT", "postgres-svc.infrastructure.svc.cluster.local"
+    "WAREHOUSE_ENDPOINT", "localhost"
 )
 # WAREHOUSE_ENDPOINT = os.getenv("WAREHOUSE_ENDPOINT", "localhost")
 WAREHOUSE_PORT = os.getenv("WAREHOUSE_PORT", "5432")
