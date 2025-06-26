@@ -188,8 +188,8 @@ cd batch_processing && python upload_s3.py
 ### 4. Build and push docker image for spark processing
 ```shell
 cd batch_processing
-docker build -t longpk1/spark_processing:1.1.1 .
-docker push longpk1/spark_processing:1.1.1
+docker build -t longpk1/spark_processing:1.1.2 .
+docker push longpk1/spark_processing:1.1.2
 ```
 
 ### 5. Install Spark Operator
@@ -202,8 +202,8 @@ helm install spark-operator spark-operator/spark-operator --namespace processor 
 
 ### 1. Build and push docker image for Airflow pipeline
 ```shell
-docker build -t longpk1/airflow_pipeline:1.0.4 k8s/airflow/
-docker push longpk1/airflow_pipeline:1.0.4
+docker build -t longpk1/airflow_pipeline:1.0.5 k8s/airflow/
+docker push longpk1/airflow_pipeline:1.0.5
 ```
 
 ### 2. Deploy Airflow orchestration

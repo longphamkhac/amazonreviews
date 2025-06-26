@@ -7,7 +7,7 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: longpk1/spark_processing:1.1.1
+  image: longpk1/spark_processing:1.1.2
   imagePullPolicy: Always
   mainApplicationFile: local:///opt/spark/work-dir/generate_silver_schema.py
   sparkVersion: 3.4.3
