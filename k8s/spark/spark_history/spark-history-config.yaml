@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-history-config
+  namespace: processor
+data:
+  spark-defaults.conf: |
+    spark.history.fs.logDirectory s3a://spark-events/spark-eventlog/
+    spark.history.fs.update.interval 10s
+    spark.history.ui.port 18080
+
+    spark.hadoop.fs.s3a.impl org.apache.hadoop.fs.s3a.S3AFileSystem
+    spark.hadoop.fs.s3a.endpoint http://minio-svc.infrastructure.svc.cluster.local:9000
+    spark.hadoop.fs.s3a.path.style.access true
+    spark.hadoop.fs.s3a.connection.ssl.enabled false
+
+    spark.hadoop.fs.s3a.aws.credentials.provider com.amazonaws.auth.EnvironmentVariableCredentialsProvider

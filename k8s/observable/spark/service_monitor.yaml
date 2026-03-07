@@ -1,0 +1,37 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: spark-metrics-driver
+  namespace: processor
+  labels:
+    component: main # must match with the serviceMonitorSelector
+spec:
+  selector:
+    matchLabels: # must match with the Service labels (metadata)
+      spark-role: driver
+  namespaceSelector:
+    matchNames:
+      - processor
+  endpoints:
+    - port: tcp-prometheus
+      path: /metrics
+      interval: 30s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: spark-metrics-executor
+  namespace: processor
+  labels:
+    component: main # must match with the serviceMonitorSelector
+spec:
+  selector:
+    matchLabels: # must match with the Service labels (metadata)
+      spark-role: executor
+  namespaceSelector:
+    matchNames:
+      - processor
+  endpoints:
+    - port: tcp-prometheus
+      path: /metrics
+      interval: 30s

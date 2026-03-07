@@ -1,0 +1,199 @@
+---
+lowercaseOutputName: true
+attrNameSnakeCase: true
+
+# Tuning-ready JMX Exporter rules for Spark (driver + executor)
+# Focus: JVM/GC, executor health, shuffle/spill, Spark SQL/metrics where available,
+# structured streaming, plus key driver subsystems.
+
+rules:
+  ############################
+  # 0) Always keep JVM metrics
+  ############################
+
+  # Driver JVM gauges (heap, non-heap, threads, etc.)
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.jvm\.(\S+)><>Value
+    name: spark_driver_jvm_$3
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+
+  # Executor JVM gauges
+  - pattern: metrics<name=(\S+)\.(\S+)\.(\S+)\.executor\.jvm\.(\S+)><>Value
+    name: spark_executor_jvm_$4
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+
+  #####################################
+  # 1) Core executor + task-level health
+  #####################################
+
+  # Executor gauges (threadpool, activeTasks, etc.)
+  - pattern: metrics<name=(\S+)\.(\S+)\.(\S+)\.executor\.(\S+)><>Value
+    name: spark_executor_$4
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+
+  # Executor counters (completedTasks, failedTasks, taskTime, etc. if exposed as Count)
+  - pattern: metrics<name=(\S+)\.(\S+)\.(\S+)\.executor\.(\S+)><>Count
+    name: spark_executor_$4_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+
+  ########################################
+  # 2) Driver subsystems (scheduling, IO)
+  ########################################
+
+  # Driver gauges for BlockManager / DAGScheduler / LiveListenerBus if exposed as Value
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.(BlockManager|DAGScheduler|LiveListenerBus)\.(\S+)><>Value
+    name: spark_driver_$3_$4
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+
+  # Driver counters for DAGScheduler (timer/hist count)
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.DAGScheduler\.(\S+)><>Count
+    name: spark_driver_dagscheduler_$3_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+
+  # LiveListenerBus counters (event count)
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.LiveListenerBus\.(\S+)><>Count
+    name: spark_driver_livelistenerbus_$3_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+
+  ########################################
+  # 3) Shuffle + Spill (critical for AQE)
+  ########################################
+
+  # Shuffle + spill often appear under executor metrics in Spark.
+  # Keep both Value and Count variants that match common naming.
+  - pattern: metrics<name=(\S+)\.(\S+)\.(\S+)\.executor\.(shuffle.*|.*spill.*|.*bytesSpilled.*|.*recordsSpilled.*|.*fetchWait.*|.*shuffleRead.*|.*shuffleWrite.*)><>Value
+    name: spark_executor_$4
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.(\S+)\.executor\.(shuffle.*|.*spill.*|.*bytesSpilled.*|.*recordsSpilled.*|.*fetchWait.*|.*shuffleRead.*|.*shuffleWrite.*)><>Count
+    name: spark_executor_$4_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+
+  ##################################################
+  # 4) Spark SQL metrics (when exposed via metrics)
+  ##################################################
+
+  # Driver-side SQL metrics (some distros expose sql.* under driver)
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.(sql|SQL)\.(\S+)><>Value
+    name: spark_driver_sql_$4
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.(sql|SQL)\.(\S+)><>Count
+    name: spark_driver_sql_$4_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+
+  # Executor-side SQL metrics (if present)
+  - pattern: metrics<name=(\S+)\.(\S+)\.(\S+)\.executor\.(sql|SQL)\.(\S+)><>Value
+    name: spark_executor_sql_$5
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.(\S+)\.executor\.(sql|SQL)\.(\S+)><>Count
+    name: spark_executor_sql_$5_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+
+  ##################################################
+  # 5) Structured Streaming (critical for streaming)
+  ##################################################
+
+  # Structured streaming metrics from driver
+  # Example: default/<appId>.driver.spark.streaming.<queryName>.<metric>
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.spark\.streaming\.(\S+)\.(\S+)><>Value
+    name: spark_structured_streaming_driver_$4
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      query_name: "$3"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.spark\.streaming\.(\S+)\.(\S+)><>Count
+    name: spark_structured_streaming_driver_$4_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      query_name: "$3"
+
+  #############################################
+  # 6) Legacy Spark Streaming (DStreams) driver
+  #############################################
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.(\S+)\.StreamingMetrics\.streaming\.(\S+)><>Value
+    name: spark_streaming_driver_$4
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      streaming_component: "$3"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.(\S+)\.StreamingMetrics\.streaming\.(\S+)><>Count
+    name: spark_streaming_driver_$4_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      streaming_component: "$3"
+
+  #########################################
+  # 7) Netty / RPC (optional but useful)
+  #########################################
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.(\S+)\.(NettyBlockTransfer|netty|rpc)\.(\S+)><>Value
+    name: spark_executor_$4_$5
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.(\S+)\.(NettyBlockTransfer|netty|rpc)\.(\S+)><>Count
+    name: spark_executor_$4_$5_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"

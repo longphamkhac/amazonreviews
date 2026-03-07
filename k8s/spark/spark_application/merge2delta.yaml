@@ -7,15 +7,26 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: longpk1/spark_processing:1.1.3
+  image: longpk1/spark_processing_datamart_optimize:1.5.2
   imagePullPolicy: Always
-  mainApplicationFile: local:///opt/spark/work-dir/convert_merge2delta.py
+  mainApplicationFile: local:///opt/spark/work-dir/convert_merge2delta_v2.py
   sparkVersion: 3.4.3
+  sparkConf:
+    "spark.eventLog.enabled": "true"
+    "spark.eventLog.compress": "true"
+    "spark.eventLog.dir": "s3a://spark-events/spark-eventlog/"
+
+    "spark.sql.files.maxPartitionBytes": "256m"
+    "spark.sql.adaptive.enabled": "true"
+    "spark.sql.adaptive.coalescePartitions.enabled": "true"
+
+    "spark.hadoop.fs.s3a.endpoint": http://minio-svc.infrastructure.svc.cluster.local:9000
+    "spark.hadoop.fs.s3a.path.style.access": "true"
+    "spark.hadoop.fs.s3a.connection.ssl.enabled": "false"
+    "spark.hadoop.fs.s3a.credentials.provider.class": com.amazonaws.auth.EnvironmentVariableCredentialsProvider
   driver:
     cores: 1
-    # memory: 4096m
-    memory: 1g  # Increased from 4Gi to 8Gi
-    # memory: 2g  # Increased from 4Gi to 8Gi
+    memory: 4g
     labels:
       version: 3.4.3
     serviceAccount: spark-operator-controller
@@ -70,13 +81,9 @@ spec:
       - name: WAREHOUSE_SCHEMA
         value: test
   executor:
-    # instances: 3
-    # cores: 4
-    # memory: 1024m
-    instances: 1  # Increased from 3 to 4
-    cores: 1
-    memory: 1g  # Increased from 1Gi to 6Gi
-    # memory: 1g  # Increased from 1Gi to 6Gi
+    instances: 2  # Increased from 3 to 4
+    cores: 5
+    memory: 4g  # Increased from 1Gi to 6Gi
     labels:
       version: 3.4.3
     env:
@@ -108,3 +115,9 @@ spec:
         value: metadata
       - name: SCHEMA_REGISTRY_ENDPOINT
         value: http://schema-registry-svc.infrastructure.svc.cluster.local:8081
+  monitoring:
+    exposeDriverMetrics: true
+    exposeExecutorMetrics: true
+    prometheus:
+      jmxExporterJar: "/opt/spark/jars/jmx_prometheus_javaagent-1.0.1.jar"
+      port: 8090

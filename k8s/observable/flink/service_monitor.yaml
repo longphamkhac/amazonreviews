@@ -1,18 +1,18 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: kafka-metrics
-  namespace: infrastructure
+  name: flink-metrics
+  namespace: processor
   labels:
     component: main # must match with the serviceMonitorSelector
 spec:
   selector:
     matchLabels: # must match with the Service labels (metadata)
-      strimzi.io/cluster: kafka
-      strimzi.io/kind: Kafka
+      app: flink-merge-streams
+      type: flink-native-kubernetes
   namespaceSelector:
     matchNames:
-      - infrastructure
+      - processor
   endpoints:
     - port: tcp-prometheus
       path: /metrics

@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-prometheus-driver
+  namespace: processor
+  labels: # must match with the "spec.selector.matchLabels" in the ServiceMonitor
+    spark-role: driver
+spec:
+  type: ClusterIP
+  selector: # must match with the labels in Deployment type (pod)
+    spark-role: driver
+  ports:
+    - name: tcp-prometheus
+      port: 8090
+      targetPort: 8090
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-prometheus-executor
+  namespace: processor
+  labels: # must match with the "spec.selector.matchLabels" in the ServiceMonitor
+    spark-role: executor
+spec:
+  type: ClusterIP
+  selector: # must match with the labels in Deployment type (pod)
+    spark-role: executor
+  ports:
+    - name: tcp-prometheus
+      port: 8090
+      targetPort: 8090
+      protocol: TCP

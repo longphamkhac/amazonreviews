@@ -1,0 +1,193 @@
+---
+lowercaseOutputName: true
+attrNameSnakeCase: true
+rules:
+  ############################################################
+  # 0) KEEP: Streaming (DStream) driver metrics
+  ############################################################
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.(\S+)\.StreamingMetrics\.streaming\.(\S+)><>Value
+    name: spark_streaming_driver_$4
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+
+  ############################################################
+  # 1) KEEP: Structured Streaming driver metrics
+  ############################################################
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.spark\.streaming\.(\S+)\.(.*)><>Value
+    name: spark_structured_streaming_driver_$4
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      query_name: "$3"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.spark\.streaming\.(\S+)\.(.*)><>Count
+    name: spark_structured_streaming_driver_$4_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      query_name: "$3"
+
+  ############################################################
+  # 2) KEEP: Executor basic gauges (covers many task gauges)
+  # Example: default/spark-pi.0.executor.threadpool.activeTasks
+  ############################################################
+  - pattern: metrics<name=(\S+)\.(\S+)\.(\S+)\.executor\.(\S+)><>Value
+    name: spark_executor_$4
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+
+  ############################################################
+  # 3) KEEP + EXTEND: Driver gauges for BlockManager/DAGScheduler/JVM
+  ############################################################
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.(BlockManager|DAGScheduler|jvm)\.(\S+)><>Value
+    name: spark_driver_$3_$4
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+
+  ############################################################
+  # 4) KEEP: Driver Counters (DAGScheduler / HiveExternalCatalog / CodeGenerator / LiveListenerBus)
+  ############################################################
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.DAGScheduler\.(.*)><>Count
+    name: spark_driver_DAGScheduler_$3_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.HiveExternalCatalog\.(.*)><>Count
+    name: spark_driver_HiveExternalCatalog_$3_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.CodeGenerator\.(.*)><>Count
+    name: spark_driver_CodeGenerator_$3_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.LiveListenerBus\.(.*)><>Count
+    name: spark_driver_LiveListenerBus_$3_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.LiveListenerBus\.(.*)><>Value
+    name: spark_driver_LiveListenerBus_$3
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+
+  ############################################################
+  # 5) KEEP: Executor counters (this is where shuffle/spill often appears)
+  ############################################################
+  - pattern: metrics<name=(\S+)\.(\S+)\.(.*)\.executor\.(.*)><>Count
+    name: spark_executor_$4_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+
+  ############################################################
+  # 6) KEEP: Executor JVM + Netty gauges (heap_used, gc_time, etc)
+  ############################################################
+  - pattern: metrics<name=(\S+)\.(\S+)\.([0-9]+)\.(jvm|NettyBlockTransfer)\.(.*)><>Value
+    name: spark_executor_$4_$5
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+
+  ############################################################
+  # 7) KEEP: Executor HiveExternalCatalog / CodeGenerator counters
+  ############################################################
+  - pattern: metrics<name=(\S+)\.(\S+)\.([0-9]+)\.HiveExternalCatalog\.(.*)><>Count
+    name: spark_executor_HiveExternalCatalog_$4_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.([0-9]+)\.CodeGenerator\.(.*)><>Count
+    name: spark_executor_CodeGenerator_$4_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+
+  ############################################################
+  # 8) NEW: SQL (Spark SQL / DataFrame) driver metrics
+  # Nhiều SQL metrics ở Spark xuất hiện dưới spark.sql.* hoặc SQLExecution/SQLMetrics.
+  # Ta capture cả Value và Count để không bị miss.
+  ############################################################
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.spark\.sql\.(\S+)\.(.*)><>Value
+    name: spark_sql_driver_$4
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      sql_component: "$3"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.driver\.spark\.sql\.(\S+)\.(.*)><>Count
+    name: spark_sql_driver_$4_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      sql_component: "$3"
+
+  ############################################################
+  # 9) NEW: SQL executor metrics (nếu có)
+  ############################################################
+  - pattern: metrics<name=(\S+)\.(\S+)\.(\S+)\.executor\.spark\.sql\.(\S+)\.(.*)><>Value
+    name: spark_sql_executor_$5
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+      sql_component: "$4"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.(\S+)\.executor\.spark\.sql\.(\S+)\.(.*)><>Count
+    name: spark_sql_executor_$5_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+      executor_id: "$3"
+      sql_component: "$4"
+
+  ############################################################
+  # 10) NEW: Catch-all for Spark “app-level” sources that are NOT under driver/executor blocks
+  # (giúp tránh miss metrics khi Spark/Operator đổi naming nhẹ)
+  ############################################################
+  - pattern: metrics<name=(\S+)\.(\S+)\.(.*)><>Value
+    name: spark_app_$3
+    type: GAUGE
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"
+
+  - pattern: metrics<name=(\S+)\.(\S+)\.(.*)><>Count
+    name: spark_app_$3_count
+    type: COUNTER
+    labels:
+      app_namespace: "$1"
+      app_id: "$2"

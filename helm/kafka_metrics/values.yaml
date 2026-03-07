@@ -1,0 +1,6 @@
+kafka:
+  namespace: infrastructure
+  name: kafka
+kafkaConnect:
+  namespace: infrastructure
+  name: kafkaconnect

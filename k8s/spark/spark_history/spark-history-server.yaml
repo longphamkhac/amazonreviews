@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-history-server
+  namespace: processor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-history-server
+  template:
+    metadata:
+      labels:
+        app: spark-history-server
+    spec:
+      containers:
+        - name: spark-history-server
+          image: longpk1/spark_history_server:1.0.1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: access-key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secret-key
+          ports:
+            - containerPort: 18080
+          volumeMounts:
+            - name: spark-config
+              mountPath: /opt/spark/conf
+      volumes:
+        - name: spark-config
+          configMap:
+            name: spark-history-config
+
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: spark-history-server
+#   namespace: processor
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: spark-history-server
+#   template:
+#     metadata:
+#       labels:
+#         app: spark-history-server
+#     spec:
+#       containers:
+#         - name: spark-history-server
+#           image: longpk1/spark_history_server:1.0.1
+#           imagePullPolicy: IfNotPresent
+#           env:
+#             - name: ACCESS_KEY
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: minio-credentials
+#                   key: access-key
+#             - name: SECRET_KEY
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: minio-credentials
+#                   key: secret-key
+#             - name: SPARK_CONF_DIR
+#               value: /tmp/spark-conf
+#           ports:
+#             - containerPort: 18080
+#           command:
+#             - /bin/sh
+#             - -lc
+#             - |
+#               set -e
+#               mkdir -p "${SPARK_CONF_DIR}"
+
+#               cat > "${SPARK_CONF_DIR}/spark-defaults.conf" <<EOF
+#               spark.history.fs.logDirectory s3a://spark-events/spark-eventlog/
+#               spark.history.fs.update.interval 10s
+
+#               spark.hadoop.fs.s3a.endpoint http://minio-svc.infrastructure.svc.cluster.local:9000
+#               spark.hadoop.fs.s3a.path.style.access true
+#               spark.hadoop.fs.s3a.connection.ssl.enabled false
+#               spark.hadoop.fs.s3a.impl org.apache.hadoop.fs.s3a.S3AFileSystem
+
+#               spark.hadoop.fs.s3a.access.key ${ACCESS_KEY}
+#               spark.hadoop.fs.s3a.secret.key ${SECRET_KEY}
+#               spark.hadoop.fs.s3a.aws.credentials.provider org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
+#               EOF
+
+#               echo "=== spark-defaults.conf ==="
+#               sed -e "s/${SECRET_KEY:0:4}.*/****/" "${SPARK_CONF_DIR}/spark-defaults.conf" || true
+
+#               exec /opt/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer

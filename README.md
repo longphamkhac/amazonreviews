@@ -12,6 +12,47 @@ This project implements a robust, cloud-native data processing pipeline for the 
 
 Additionally, external access can be routed by **Nginx-ingress**. The architecture also includes a **Hive Metastore** and **Trino** for parallel querying parquet files (Delta Lake format) directly from Minio. For monitoring and observability, **Prometheus**, managed by the **Prometheus Operator**, collects metrics from Kafka, Flink, and Spark processors. These are visualized in **Grafana**, with real-time alerts pushed to **Slack** in case of anomalies, ensuring operational reliability and transparency across the pipeline.
 
+## Updates
+After a week of optimizing **Spark batch pipelines** with complex joins and aggregations for data mart generation, we improved the pipeline to process up to nearly **13 TB/day** on a **GKE 10-core cluster contains 2 nodes**. 
+
+Below are details for benchmarking:
+  1. **Input size**: 150GB raw JSON files
+  2. **Runtime**: 17 minutes
+  3. **Throughput**: 8.8GB/min
+  4. **Disk spill**: 0.0 GB
+  5. **Settings**: 10-core cluster contains 2 nodes, each of 6GB RAM
+
+![Spark Observability](assets/spark_monitoring.png)
+
+Here are what we observed and optimized:
+  1. **JSON Parsing Bottleneck and Schema Optimization**:
+		- Observed that the most expensive stage in the pipeline was converting raw JSON files to Delta format, as Spark needed to parse the entire dataset and infer the schema dynamically.
+		- Defined the schema explicitly and loaded data using `spark.read.schema`, which reduced runtime by **~4×**.
+		- Converted raw JSON to Delta format while **selecting only required fields**, which improved downstream processing performance.
+		- This transformation also **reduced storage usage by more than 70%** compared to the original JSON files.
+  2. **Reducing Join Cost by Minimizing Input Data**
+		- Before performing join operations, we **reduced the number of records as much as possible** using techniques such as **aggregations** and `dropDuplicates`.
+		- This approach minimizes the amount of data that needs to be shuffled across the cluster during joins, also **avoiding spill disk rates**.
+		- As a result, the size of the join inputs was significantly reduced, enabling the use of **broadcast joins**, which further improved join performance and reduced shuffle overhead.
+  3. **Avoiding Expensive Window Functions**
+		- Avoided using **window functions** whenever possible, as they often require **global sorting and large shuffle operations**, which significantly increase execution cost.
+		- In our pipeline, certain window-based computations were replaced with **aggregations using `F.max`** on structured columns to obtain the desired results.
+		- This approach allowed Spark to perform **hash-based aggregations** instead of **sort-heavy window operations**, reducing **shuffle overhead** and avoiding **spill disk rates**.
+  4. **Eliminating Disk Spill to Reduce I/O Bottlenecks**
+		- Observed **high disk spill rates** during execution, which are extremely costly due to **heavy disk I/O** and significantly degrade performance.
+		- Through Spark monitoring, we noticed that **CPU utilization was very low** while **task throughput was poor**, indicating that **some tasks were running for a long time**. At the same time, **disk spill metrics spiked**, suggesting that **partitions were too large to fit in executor memory**.
+		- To resolve this issue, we **increased the number of partitions** so that each task processed a smaller amount of data, allowing operations to fit within memory.
+		- This adjustment effectively **eliminated disk spill and improved overall pipeline performance by approximately 3×**.
+  5. **Leveraging Adaptive Query Execution (AQE) for Optimal Partition Sizes**
+		- Enabled **Adaptive Query Execution (AQE)** to dynamically optimize query execution based on runtime statistics.
+		- AQE automatically **coalesces small shuffle partitions**, merging them into larger partitions with a **target size of around 128 MB (recommended)**.
+		- This helps prevent the creation of too many small tasks, **reduces scheduling overhead**, and improves **resource utilization** across executors.
+  6. **Preventing Data Skew by Increasing Parallelism**:
+		- Having **too few partitions** resulted in **very large partition sizes**, which could lead to **data skew** during execution.
+		- This caused some tasks to finish quickly while others processed disproportionately large partitions, leaving executors idle and resulting in **poor CPU utilization**.
+		- To address this, we **increased the number of partitions** to **improve parallelism** and **distribute the workload more evenly** across tasks.
+
+
 ## Architecture overview
 ![Amazon Reviews Architecture](assets/amazonreviews_architecture.png)
 
@@ -123,6 +164,11 @@ kubectl get pod -n operators
 ![strimzi_kafka_operator](assets/strimzi_kafka_operator.png)
 
 ### 6. Install Kafka related infrastructure (Kafka, KafkaConnect, Provectus and Schema Registry)
+- Deploy **Kafka Metrics Configmap**.
+```shell
+helm upgrade --install kafka-metrics helm/kafka_metrics -n infrastructure
+```
+
 - Deploy Kafka-dependent infrastructure **(Kafka Connect, Provectus and Schema Registry)**.
 ```shell
 helm upgrade --install kafka helm/strimzi_kafka_operator -n infrastructure
@@ -197,6 +243,9 @@ docker push longpk1/spark_processing:1.1.3
 helm repo add spark-operator https://kubeflow.github.io/spark-operator
 helm install spark-operator spark-operator/spark-operator --namespace processor --version 1.2.7 --set serviceAccounts.spark.create=true --set serviceAccounts.spark.name=spark-operator-controller --set sparkJobNamespace=processor --set logLevel=4 --create-namespace
 ```
+
+### 6. Create Spark Events Log directory (Very Important)
+To enable **Spark jobs to persist event logs**, we created the directory `s3a://spark-events/spark-eventlog/`. This requires first creating the **`spark-events` bucket**, then manually creating the **`spark-eventlog` folder** by **uploading any placeholder file** to that path. Without this directory being present, Spark jobs will fail with an error indicating that **the event log path cannot be found**.
 
 ### Follow these steps to set up the Airflow orchestration
 
@@ -335,16 +384,36 @@ kubectl apply --server-side -f k8s/observable/prometheus-operator-crd
 kubectl apply -R -f k8s/observable/monitoring
 ```
 ![prometheus](assets/prometheus.png)
-- Create `Service` and `ServiceMonitor` for Kafka cluster.
+- Overwrite **namespace labelling** for **Prometheus** scraping **(Very important)**
+```shell
+kubectl label ns processor monitoring=prometheus --overwrite
+```
+- Create `Service` and `ServiceMonitor` for **Kafka cluster**.
 ```shell
 kubectl apply -R -f k8s/observable/kafka_kraft_monitoring/
 ```
-- Verify whether prometheus can scrape metrics from Kafka cluster by these commands.
+- Verify whether **prometheus can scrape metrics from Kafka cluster** by these commands.
 ```shell
 kubectl exec -it prometheus-main-0 -n monitoring -- /bin/sh
 nc -zv kafka-kafka-prometheus.debezium-example.svc.cluster.local:9404
 ```
 ![kafka_kraft_monitoring](assets/kafka_kraft_monitoring.png)
+- Create `Service` and `ServiceMonitor` for **Spark cluster**.
+```shell
+kubectl apply -R -f k8s/observable/spark/
+```
+- Verify whether **prometheus can scrape metrics from Spark cluster** by these commands.
+```shell
+kubectl exec -it prometheus-main-0 -n monitoring -- /bin/sh
+wget -qO- http://spark-prometheus-driver.processor.svc.cluster.local:8090/metrics
+```
+
+### Spark History Server
+- In order to analyze the **Spark Jobs**, we need **Spark History Server** which is mounted to place where we saved **Spark Events Log**.
+```shell
+kubectl apply -R -f k8s/spark/spark_history/
+```
+![Spark History Server](assets/spark_history_server.png)
 
 ### Jenkins CI/CD Pipeline
 You can follow the instructions to install **Jenkins, create Dockerhub and Github credentials** from [this repository](https://github.com/longphamkhac/IQA).
